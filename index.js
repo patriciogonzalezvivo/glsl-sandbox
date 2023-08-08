@@ -1,4 +1,9 @@
-export function GlslSandbox( renderer, uniforms = {}) {
+module.exports = GlslSandbox
+
+function GlslSandbox( renderer, uniforms = {}) {
+    if (typeof global.THREE === 'undefined') {
+        throw new TypeError('You must have THREE in global scope for this module.')
+      }
 
     if ( !renderer.extensions.get( "OES_texture_float" ) )
         return "No OES_texture_float support for float textures.";
@@ -14,13 +19,13 @@ export function GlslSandbox( renderer, uniforms = {}) {
     this.sceneBuffer = null;
     this.postprocessing = null;
 
-    var billboard_scene = new THREE.Scene();
-    var billboard_camera = new THREE.Camera();
+    var billboard_scene = new global.THREE.Scene();
+    var billboard_camera = new global.THREE.Camera();
     billboard_camera.position.z = 1;
     var passThruUniforms = { texture: { value: null } };
     var passThruShader = createShaderMaterial( getPassThroughFragmentShader(), passThruUniforms );
 
-    var mesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 2, 2 ), passThruShader );
+    var mesh = new global.THREE.Mesh( new global.THREE.PlaneBufferGeometry( 2, 2 ), passThruShader );
     billboard_scene.add( mesh );
 
     this.getBufferSize = function( frag_src, name ) {
@@ -94,8 +99,8 @@ export function GlslSandbox( renderer, uniforms = {}) {
             wrapT: null,
             width: width,
             height: height,
-            minFilter: THREE.LinnearFilter,
-            magFilter: THREE.LinnearFilter
+            minFilter: global.THREE.LinnearFilter,
+            magFilter: global.THREE.LinnearFilter
         };
 
         this.buffers.push( b );
@@ -124,8 +129,8 @@ export function GlslSandbox( renderer, uniforms = {}) {
             wrapT: null,
             width: width,
             height: height,
-            minFilter: THREE.LinnearFilter,
-            magFilter: THREE.LinnearFilter
+            minFilter: global.THREE.LinnearFilter,
+            magFilter: global.THREE.LinnearFilter
         };
 
         this.doubleBuffers.push( db );
@@ -150,8 +155,8 @@ export function GlslSandbox( renderer, uniforms = {}) {
             wrapT: null,
             width: renderer.domElement.width,
             height: renderer.domElement.height,
-            minFilter: THREE.LinnearFilter,
-            magFilter: THREE.LinnearFilter
+            minFilter: global.THREE.LinnearFilter,
+            magFilter: global.THREE.LinnearFilter
         };
         this.sceneBuffer.renderTargets = this.createRenderTarget( this.sceneBuffer );
         this.uniforms[ "u_scene" ] = { value: this.sceneBuffer.renderTargets.texture };
@@ -165,7 +170,7 @@ export function GlslSandbox( renderer, uniforms = {}) {
         // Buffers
         for ( var i = 0, il = this.buffers.length; i < il; i++ ) {
             var b = this.buffers[ i ];
-            this.uniforms[ "u_resolution" ].value = new THREE.Vector2( b.width, b.height );
+            this.uniforms[ "u_resolution" ].value = new global.THREE.Vector2( b.width, b.height );
 
             this.doRenderTarget( b.material, b.renderTargets[ 0 ] );
             this.uniforms[ b.name ].value = b.renderTargets[ 0 ].texture;
@@ -176,7 +181,7 @@ export function GlslSandbox( renderer, uniforms = {}) {
         var nextTextureIndex = this.currentTextureIndex === 0 ? 1 : 0;
         for ( var i = 0, il = this.doubleBuffers.length; i < il; i++ ) {
             var db = this.doubleBuffers[ i ];
-            this.uniforms[ "u_resolution" ].value = new THREE.Vector2( db.width, db.height );
+            this.uniforms[ "u_resolution" ].value = new global.THREE.Vector2( db.width, db.height );
             this.uniforms[ db.name ].value = db.renderTargets[ currentTextureIndex ].texture;
 
             this.doRenderTarget( db.material, db.renderTargets[ nextTextureIndex ] );
@@ -190,7 +195,7 @@ export function GlslSandbox( renderer, uniforms = {}) {
     this.renderScene = function(scene, camera) {
         this.update();
 
-        this.uniforms[ "u_resolution" ].value = new THREE.Vector2( this.sceneBuffer.width, this.sceneBuffer.height );
+        this.uniforms[ "u_resolution" ].value = new global.THREE.Vector2( this.sceneBuffer.width, this.sceneBuffer.height );
         
         if (this.sceneBuffer) {
             renderer.setRenderTarget(this.sceneBuffer.renderTargets);
@@ -243,7 +248,7 @@ export function GlslSandbox( renderer, uniforms = {}) {
     };
 
     function createShaderMaterial( computeFragmentShader ) {
-        var material = new THREE.ShaderMaterial( {
+        var material = new global.THREE.ShaderMaterial( {
             uniforms: uniforms,
             vertexShader: getPassThroughVertexShader(),
             fragmentShader: computeFragmentShader
@@ -253,24 +258,24 @@ export function GlslSandbox( renderer, uniforms = {}) {
     // this.createShaderMaterial = createShaderMaterial;
 
     this.createRenderTarget = function( b ) {
-        b.wrapS = b.wrapS || THREE.RepeatWrapping;
-        b.wrapT = b.wrapT || THREE.RepeatWrapping;
+        b.wrapS = b.wrapS || global.THREE.RepeatWrapping;
+        b.wrapT = b.wrapT || global.THREE.RepeatWrapping;
 
-        b.minFilter = b.minFilter || THREE.LinnearFilter;
-        b.magFilter = b.magFilter || THREE.LinnearFilter;
+        b.minFilter = b.minFilter || global.THREE.LinnearFilter;
+        b.magFilter = b.magFilter || global.THREE.LinnearFilter;
 
-        let type = THREE.FloatType;
+        let type = global.THREE.FloatType;
 
         if ( renderer.capabilities.isWebGL2 === false )
-            type = THREE.HalfFloatType;
+            type = global.THREE.HalfFloatType;
 
-        var renderTarget = new THREE.WebGLRenderTarget( b.width, b.height, {
+        var renderTarget = new global.THREE.WebGLRenderTarget( b.width, b.height, {
             wrapS: b.wrapS,
             wrapT: b.wrapT,
             minFilter: b.minFilter,
             magFilter: b.magFilter,
-            format: THREE.RGBAFormat,
-            type: ( /(iPad|iPhone|iPod)/g.test( navigator.userAgent ) ) ? THREE.HalfFloatType : type,
+            format: global.THREE.RGBAFormat,
+            type: ( /(iPad|iPhone|iPod)/g.test( navigator.userAgent ) ) ? global.THREE.HalfFloatType : type,
             stencilBuffer: false
         } );
         return renderTarget;
@@ -278,7 +283,7 @@ export function GlslSandbox( renderer, uniforms = {}) {
 
     this.createTexture = function( sizeXTexture, sizeYTexture ) {
         var a = new Float32Array( sizeXTexture * sizeYTexture * 4 );
-        var texture = new THREE.DataTexture( a, sizeXTexture, sizeYTexture, THREE.RGBAFormat, THREE.FloatType );
+        var texture = new global.THREE.DataTexture( a, sizeXTexture, sizeYTexture, global.THREE.RGBAFormat, global.THREE.FloatType );
         texture.needsUpdate = true;
         return texture;
     };
