@@ -5,11 +5,6 @@
   "main": "index.js",
   "license": "MIT",
   "author": "Patricio Gonzalez Vivo <patriciogonzalezvivo@gmail.com>",
-  "standard": {
-    "globals": [
-      "THREE"
-    ]
-  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
