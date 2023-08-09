@@ -5,7 +5,6 @@
   "main": "index.js",
   "license": "MIT",
   "author": "Patricio Gonzalez Vivo <patriciogonzalezvivo@gmail.com>",
-  "dependencies": {},
   "standard": {
     "globals": [
       "THREE"
@@ -16,6 +15,7 @@
     "budo": "^7.0.2",
     "npm-run-all": "^1.6.0",
     "onchange": "^2.1.2",
+    "resolve-lygia": "^1.0.4",
     "standard": "^5.4.1",
     "three": "^0.73.0",
     "uglify-js": "^2.6.1"
@@ -25,7 +25,6 @@
     "watch": "onchange 'index.js' '*.glsl' -- npm run transpile",
     "dev": "budo example.js:bundle.js --live",
     "build": "browserify example.js | uglifyjs -cm > bundle.js",
-    "prepublish": "npm run transpile",
     "test": "standard"
   },
   "repository": {
@@ -44,6 +43,6 @@
     "buffer",
     "ping",
     "pong",
-    "glslViewer",
+    "glslViewer"
   ]
 }
