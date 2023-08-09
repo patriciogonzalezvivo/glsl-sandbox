@@ -117,8 +117,8 @@ function GlslSandbox( renderer, uniforms = {}) {
             wrapT: null,
             width: width,
             height: height,
-            minFilter: global.THREE.LinnearFilter,
-            magFilter: global.THREE.LinnearFilter
+            minFilter: global.THREE.LinearFilter,
+            magFilter: global.THREE.LinearFilter
         };
 
         this.buffers.push( b );
@@ -147,8 +147,8 @@ function GlslSandbox( renderer, uniforms = {}) {
             wrapT: null,
             width: width,
             height: height,
-            minFilter: global.THREE.LinnearFilter,
-            magFilter: global.THREE.LinnearFilter
+            minFilter: global.THREE.LinearFilter,
+            magFilter: global.THREE.LinearFilter
         };
 
         this.doubleBuffers.push( db );
@@ -173,8 +173,8 @@ function GlslSandbox( renderer, uniforms = {}) {
             wrapT: null,
             width: renderer.domElement.width,
             height: renderer.domElement.height,
-            minFilter: global.THREE.LinnearFilter,
-            magFilter: global.THREE.LinnearFilter
+            minFilter: global.THREE.LinearFilter,
+            magFilter: global.THREE.LinearFilter
         };
         
         this.uniforms[ "u_scene" ] = { type: 't',  value: null };
@@ -294,8 +294,8 @@ function GlslSandbox( renderer, uniforms = {}) {
         b.wrapS = b.wrapS || global.THREE.ClampToEdgeWrapping;
         b.wrapT = b.wrapT || global.THREE.ClampToEdgeWrapping;
 
-        b.minFilter = b.minFilter || global.THREE.LinnearFilter;
-        b.magFilter = b.magFilter || global.THREE.LinnearFilter;
+        b.minFilter = b.minFilter || global.THREE.LinearFilter;
+        b.magFilter = b.magFilter || global.THREE.LinearFilter;
 
         let type = global.THREE.FloatType;
 
