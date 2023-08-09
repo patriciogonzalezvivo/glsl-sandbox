@@ -47,28 +47,30 @@ function GlslSandbox( renderer, uniforms = {}) {
             // console.log("Found size:", size_found);
             return {width: parseInt(size_found[1]), height: parseInt(size_found[2]) };
         }
-        return {width: 32.0, height: 32.0};
+        // return {width: 32.0, height: 32.0};
         
-        // const scale_exp = new RegExp(`uniform\\s*sampler2D\\s*${name}\\;\\s*\\/\\/*\\s(\\d*\\.\\d+|\\d+))`, 'gm');
-        // const scale_found = scale_exp.exec(frag_src);
-        // if (scale_found) {
-        //  console.log("Found scale:", scale_found);
-        //  if (scale_found.length > 2) {
-        //      return {width: parseFloat(scale_found[1]), height: parseFloat(scale_found[2]) };
-        //  }
-        //  else if (scale_found.length > 1) {
-        //      return {width: parseFloat(scale_found[1]), height: parseFloat(scale_found[1]) };
-        //  }
-        // }
+        const scale_exp = new RegExp(`uniform\\s*sampler2D\\s*${name}\\;\\s*\\/\\/*\\s(\\d*\\.\\d+|\\d+)`, 'gm');
+        const scale_found = scale_exp.exec(frag_src);
+        if (scale_found) {
+         console.log("Found scale:", scale_found);
+         if (scale_found.length > 2) {
+             return {width: parseFloat(scale_found[1]), height: parseFloat(scale_found[2]) };
+         }
+         else if (scale_found.length > 1) {
+             return {width: parseFloat(scale_found[1]), height: parseFloat(scale_found[1]) };
+         }
+        }
 
-        // return {width: 1.0, height: 1.0};
+        return {width: 1.0, height: 1.0};
     }
 
     this.load = function( frag_src ) {
         const found_background = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*BACKGROUND)(?:\s*\))|(?:#ifdef)(?:\s*BACKGROUND)(?:\s*))/gm);
         // console.log("background:", found_background );
-        if (found_background)
+        if (found_background) {
+            renderer.autoClearColor = false;
             this.addBackground(frag_src);
+        }
 
         const found_buffers = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*BUFFER_)(\d+)(?:\s*\))|(?:#ifdef)(?:\s*BUFFER_)(\d+)(?:\s*))/gm);
         // console.log("buffers:", found_buffers );
@@ -224,7 +226,7 @@ function GlslSandbox( renderer, uniforms = {}) {
         this.updateBuffers();
         
         this.uniforms[ "u_resolution" ].value = resolution;
-        
+
         if (this.sceneBuffer) {
             renderer.setRenderTarget(this.sceneBuffer.renderTarget);
             renderer.clear();

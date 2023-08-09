@@ -8,6 +8,22 @@ let width = W.innerWidth;
 let height = W.innerHeight;
 let pixelRatio = W.devicePixelRatio
 
+const renderer = new THREE.WebGLRenderer({
+    // antialias: true,
+    // precision: 'mediump', 
+    // powerPreference: "high-performance", 
+    // depth: false, 
+    // alpha: true,
+    // preserveDrawingBuffer: true,
+})
+// renderer.autoClear = false;
+// renderer.autoClearColor = false;
+// renderer.autoClearDepth = false;
+// renderer.autoClearStencil = true;
+renderer.setPixelRatio(pixelRatio);
+renderer.setSize(width, height);
+D.body.appendChild(renderer.domElement);
+
 const shader_vert = resolveLygia(`
 #define PLATFORM_WEBGL
 
@@ -42,7 +58,8 @@ const shader_frag = resolveLygia(`
 #define PLATFORM_WEBGL
 
 uniform sampler2D   u_scene;
-uniform sampler2D   u_buffer0;
+uniform sampler2D   u_buffer0; // 512x512
+uniform sampler2D   u_doubleBuffer0; // 512x512
 
 uniform vec3        u_camera;
 uniform vec2        u_resolution;
@@ -53,6 +70,10 @@ varying vec2        v_texcoord;
 varying vec3        v_normal;
 varying vec4        v_position;
 
+#include "lygia/space/sqTile.glsl"
+#include "lygia/color/palette/hue.glsl"
+#include "lygia/draw/circle.glsl"
+
 void main() {
     vec4 color = vec4(vec3(0.0), 1.0);
     vec2 pixel = 1.0/u_resolution;
@@ -62,8 +83,15 @@ void main() {
 #ifdef BACKGROUND
     color.rg = st;
 
-#elif defined(BUFFER_0)
-    color.r = 1.0;
+#elif defined(DOUBLE_BUFFER_0)
+    color = texture2D(u_doubleBuffer0, st) * 0.99;
+
+    float amount = 3.0;
+    vec4 t = sqTile(uv, amount);
+    t.xy += vec2(cos(u_time), sin(u_time)) * 0.2;
+    color.rgb += hue( fract((t.z + t.w) / amount) + u_time * 0.1) * circle(t.xy, 0.1) * 0.1;
+
+    color.a = 1.0;
 
 // #elif defined(POSTPROCESSING)
 //     color = texture2D(u_scene, st);
@@ -72,21 +100,13 @@ void main() {
 
     color.rg = st;
     color.rgb = v_normal;
-    color = texture2D(u_buffer0, uv);
+    color = texture2D(u_doubleBuffer0, uv);
 
 #endif
 
     gl_FragColor = color;
 }
 `);
-
-const renderer = new THREE.WebGLRenderer({
-    antialias: false
-})
-renderer.setPixelRatio(pixelRatio);
-renderer.setSize(width, height);
-renderer.autoClearColor = false;
-D.body.appendChild(renderer.domElement);
 
 const uniforms = {
     u_camera: { type: "v3", value: new THREE.Vector3() },
