@@ -82,11 +82,13 @@ function GlslSandbox( renderer, uniforms = {}) {
         
         const found_doubleBuffers = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*DOUBLE_BUFFER_)(\d+)(?:\s*\))|(?:#ifdef)(?:\s*DOUBLE_BUFFER_)(\d+)(?:\s*))/gm);
         // console.log("doubleBuffers:", found_doubleBuffers );
-        if (found_doubleBuffers)
+        if (found_doubleBuffers) {
+            renderer.autoClearColor = false;
             for (let i = 0; i < found_doubleBuffers.length; i++) {
                 let s = this.getBufferSize( frag_src, `u_doubleBuffer${i}` );
                 this.addDoubleBuffer(frag_src, s.width, s.height );
             }
+        }
 
         // this.main = createShaderMaterial(frag_src);
 

@@ -15,11 +15,7 @@ const renderer = new THREE.WebGLRenderer({
     // depth: false, 
     // alpha: true,
     // preserveDrawingBuffer: true,
-})
-// renderer.autoClear = false;
-// renderer.autoClearColor = false;
-// renderer.autoClearDepth = false;
-// renderer.autoClearStencil = true;
+});
 renderer.setPixelRatio(pixelRatio);
 renderer.setSize(width, height);
 D.body.appendChild(renderer.domElement);
@@ -82,6 +78,7 @@ void main() {
 
 #ifdef BACKGROUND
     color.rg = st;
+    color.b = 1.0;
 
 #elif defined(DOUBLE_BUFFER_0)
     color = texture2D(u_doubleBuffer0, st) * 0.99;
