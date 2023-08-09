@@ -10,25 +10,10 @@
       "THREE"
     ]
   },
-  "devDependencies": {
-    "browserify": "^12.0.1",
-    "budo": "^7.0.2",
-    "npm-run-all": "^1.6.0",
-    "onchange": "^2.1.2",
-    "resolve-lygia": "^1.0.4",
-    "standard": "^5.4.1",
-    "three": "^0.73.0",
-    "transpilify": "^2.0.0",
-    "uglify-js": "^2.6.1"
-  },
   "scripts": {
-    "start": "npm-run-all --parallel watch dev",
-    "watch": "onchange 'index.js' '*.glsl' -- npm run transpile",
-    "dev": "budo example.js:bundle.js --live",
-    "build": "browserify example.js | uglifyjs -cm > bundle.js",
-    "transpile": "transpilify index.js --out-file build/index.js",
-    "prepublish": "npm run transpile",
-    "test": "standard"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "repository": {
     "type": "git",
@@ -47,5 +32,11 @@
     "ping",
     "pong",
     "glslViewer"
-  ]
+  ],
+  "devDependencies": {
+    "vite": "^4.4.9"
+  },
+  "dependencies": {
+    "three": "^0.155.0"
+  }
 }
