@@ -122,7 +122,7 @@ void main() {
 `);
 
 const uniforms = {
-    u_camera: { type: "v3", value: new Vector3() },
+    u_camera: { value: new Vector3() },
 };
 
 // GLSL Buffers
@@ -133,7 +133,7 @@ glsl_sandbox.load(shader_frag);
 const material = new ShaderMaterial({
     vertexShader: shader_vert,
     fragmentShader: shader_frag,
-    uniforms: uniforms,
+    uniforms,
 });
 material.defines = glsl_sandbox.defines;
 
@@ -149,7 +149,7 @@ const draw = () => {
     // // 2D main shader
     // glsl_sandbox.renderMain();
 
-    // 3D Scense
+    // 3D Scene
     glsl_sandbox.renderScene(scene, cam);
 
     requestAnimationFrame(draw);
