@@ -8,6 +8,7 @@ import {
     Clock, 
     Vector2, 
     LinearFilter, 
+    RepeatWrapping,
     ClampToEdgeWrapping, 
     FloatType, 
     HalfFloatType,
@@ -18,8 +19,6 @@ function GlslSandbox( renderer, uniforms = {} ) {
     if (!renderer.capabilities.floatFragmentTextures )
         return "No OES_texture_float support for float textures.";
     
-    renderer.extensions.get("WEBGL_color_buffer_float");
-
     this.defines = {};
     this.uniforms = uniforms;
     this.uniforms.u_resolution = { type: "v2", value: new Vector2() };
@@ -53,22 +52,16 @@ function GlslSandbox( renderer, uniforms = {} ) {
     this.getBufferSize = function( frag_src, name ) {
         const size_exp = new RegExp(`uniform\\s*sampler2D\\s*${name}\\;\\s*\\/\\/*\\s(\\d+)x(\\d+)`, 'gm');
         const size_found = size_exp.exec(frag_src);
-        if (size_found) {
-            // console.log("Found size:", size_found);
+        if (size_found)
             return {width: parseInt(size_found[1]), height: parseInt(size_found[2]) };
-        }
-        // return {width: 32.0, height: 32.0};
         
         const scale_exp = new RegExp(`uniform\\s*sampler2D\\s*${name}\\;\\s*\\/\\/*\\s(\\d*\\.\\d+|\\d+)`, 'gm');
         const scale_found = scale_exp.exec(frag_src);
         if (scale_found) {
-         console.log("Found scale:", scale_found);
-         if (scale_found.length > 2) {
-             return {width: parseFloat(scale_found[1]), height: parseFloat(scale_found[2]) };
-         }
-         else if (scale_found.length > 1) {
-             return {width: parseFloat(scale_found[1]), height: parseFloat(scale_found[1]) };
-         }
+            if (scale_found.length > 2)
+                return {width: parseFloat(scale_found[1]), height: parseFloat(scale_found[2]) };
+            else if (scale_found.length > 1)
+                return {width: parseFloat(scale_found[1]), height: parseFloat(scale_found[1]) };
         }
 
         return {width: 1.0, height: 1.0};

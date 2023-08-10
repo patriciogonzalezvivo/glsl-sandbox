@@ -1,4 +1,5 @@
 import { WebGLRenderer, PerspectiveCamera, Scene, BoxGeometry, ShaderMaterial, Mesh, Vector2, Vector3 } from 'three'
+import { resolveLygia } from 'resolve-lygia'
 
 import { GlslSandbox }  from './index.js'
 
@@ -57,6 +58,7 @@ const shader_frag = resolveLygia(/* glsl */`
 uniform sampler2D   u_scene;
 uniform sampler2D   u_buffer0; // 512x512
 uniform sampler2D   u_doubleBuffer0; // 512x512
+uniform sampler2D   u_doubleBuffer1; // 512x512
 
 uniform vec3        u_camera;
 uniform vec2        u_resolution;
@@ -66,6 +68,7 @@ uniform int         u_frame;
 varying vec2        v_texcoord;
 varying vec4        v_position;
 
+#include "lygia/space/ratio.glsl"
 #include "lygia/space/sqTile.glsl"
 #include "lygia/color/palette/hue.glsl"
 #include "lygia/draw/circle.glsl"
@@ -77,22 +80,29 @@ void main() {
     vec2 uv = v_texcoord;
 
 #ifdef BACKGROUND
-    color.rg = st;
-    color.b = 1.0;
+    st = ratio(st, u_resolution);
+    color.rgb += (1.0-circle(st, 0.8)) * vec3(st, sin(u_time)) * 0.1;
 
 #elif defined(DOUBLE_BUFFER_0)
     color = texture2D(u_doubleBuffer0, st) * 0.99;
 
-    float amount = 3.0;
+    float amount = 10.0;
     vec4 t = sqTile(uv, amount);
-    float time = t.z + t.w + u_time;
+    float time = t.z + t.w + u_time * 4.0;
     t.xy += vec2(cos(time), sin(time)) * 0.2;
     color.rgb += hue( fract((t.z + t.w) / amount) + u_time * 0.1) * circle(t.xy, 0.1) * 0.05;
 
     color.a = 1.0;
 
-// #elif defined(POSTPROCESSING)
-//     color = texture2D(u_scene, st);
+#elif defined(DOUBLE_BUFFER_1)
+    vec4 scene = texture2D(u_scene, st);
+    
+    color += texture2D(u_doubleBuffer1, st) * 0.99;
+    color.rgb += scene.rgb * scene.a * 0.1;
+
+
+#elif defined(POSTPROCESSING)
+    color = texture2D(u_doubleBuffer1, st);
 
 #else
 

@@ -29,7 +29,8 @@
     "glslViewer"
   ],
   "devDependencies": {
-    "vite": "^4.4.9"
+    "vite": "^4.4.9",
+    "resolve-lygia": "^1.0.4"
   },
   "dependencies": {
     "three": "^0.155.0"
