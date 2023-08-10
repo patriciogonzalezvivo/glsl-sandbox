@@ -64,7 +64,6 @@ uniform float       u_time;
 uniform int         u_frame;
 
 varying vec2        v_texcoord;
-varying vec3        v_normal;
 varying vec4        v_position;
 
 #include "lygia/space/sqTile.glsl"
@@ -86,8 +85,9 @@ void main() {
 
     float amount = 3.0;
     vec4 t = sqTile(uv, amount);
-    t.xy += vec2(cos(u_time), sin(u_time)) * 0.2;
-    color.rgb += hue( fract((t.z + t.w) / amount) + u_time * 0.1) * circle(t.xy, 0.1) * 0.1;
+    float time = t.z + t.w + u_time;
+    t.xy += vec2(cos(time), sin(time)) * 0.2;
+    color.rgb += hue( fract((t.z + t.w) / amount) + u_time * 0.1) * circle(t.xy, 0.1) * 0.05;
 
     color.a = 1.0;
 
@@ -97,7 +97,6 @@ void main() {
 #else
 
     color.rg = st;
-    color.rgb = v_normal;
     color = texture2D(u_doubleBuffer0, uv);
 
 #endif
@@ -131,6 +130,10 @@ scene.add(mesh);
 const draw = () => {
     uniforms.u_camera.value = cam.position;
 
+    // // 2D main shader
+    // glsl_sandbox.renderMain();
+
+    // 3D Scense
     glsl_sandbox.renderScene(scene, cam);
 
     requestAnimationFrame(draw);
