@@ -1,18 +1,28 @@
-module.exports = GlslSandbox
+import { 
+    WebGLRenderTarget,
+    Camera, 
+    Scene, 
+    PlaneGeometry, 
+    ShaderMaterial,
+    Mesh, 
+    Clock, 
+    Vector2, 
+    LinearFilter, 
+    ClampToEdgeWrapping, 
+    FloatType, 
+    HalfFloatType,
+    RGBAFormat,
+} from 'three'
 
-function GlslSandbox( renderer, uniforms = {}) {
-    if (typeof global.THREE === 'undefined') {
-        throw new TypeError('You must have THREE in global scope for this module.')
-    }
-    
-    if (!renderer.extensions.get( "OES_texture_float" ) )
+function GlslSandbox( renderer, uniforms = {} ) {    
+    if (!renderer.capabilities.floatFragmentTextures )
         return "No OES_texture_float support for float textures.";
     
     renderer.extensions.get("WEBGL_color_buffer_float");
 
     this.defines = {};
     this.uniforms = uniforms;
-    this.uniforms.u_resolution = { type: "v2", value: new THREE.Vector2() };
+    this.uniforms.u_resolution = { type: "v2", value: new Vector2() };
     this.uniforms.u_delta = { type: "f", value: 0.0 },
     this.uniforms.u_time = { type: "f", value: 0.0 },
     this.uniforms.u_frame = { type: 'int', value: 0 },
@@ -25,20 +35,20 @@ function GlslSandbox( renderer, uniforms = {}) {
     this.sceneBuffer = null;
     this.postprocessing = null;
 
-    var billboard_scene = new global.THREE.Scene();
-    var billboard_camera = new global.THREE.Camera();
+    var billboard_scene = new Scene();
+    var billboard_camera = new Camera();
     billboard_camera.position.z = 1;
     var passThruUniforms = { texture: { value: null } };
     var passThruShader = createShaderMaterial( getPassThroughFragmentShader(), passThruUniforms );
 
-    var mesh = new global.THREE.Mesh( new global.THREE.PlaneBufferGeometry( 2, 2 ), passThruShader );
+    var mesh = new Mesh( new PlaneGeometry( 2, 2 ), passThruShader );
     billboard_scene.add( mesh );
 
-    var clock = new THREE.Clock();
+    var clock = new Clock();
     var frame = 0;
     var lastTime = 0.0;
     var time = 0.0;
-    let resolution = new global.THREE.Vector2(renderer.domElement.width, renderer.domElement.height);
+    let resolution = new Vector2(renderer.domElement.width, renderer.domElement.height);
 
     this.getBufferSize = function( frag_src, name ) {
         const size_exp = new RegExp(`uniform\\s*sampler2D\\s*${name}\\;\\s*\\/\\/*\\s(\\d+)x(\\d+)`, 'gm');
@@ -62,7 +72,7 @@ function GlslSandbox( renderer, uniforms = {}) {
         }
 
         return {width: 1.0, height: 1.0};
-    }
+    };
 
     this.load = function( frag_src ) {
         const found_background = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*BACKGROUND)(?:\s*\))|(?:#ifdef)(?:\s*BACKGROUND)(?:\s*))/gm);
@@ -96,7 +106,7 @@ function GlslSandbox( renderer, uniforms = {}) {
         // console.log("postprocessing:", found_postprocessing );
         if (found_postprocessing)
             this.addPostprocessing(frag_src);
-    }
+    };
 
     this.addBackground = function( frag_src ) {
         this.background = createShaderMaterial(`#define BACKGROUND\n${frag_src}`);
@@ -114,10 +124,10 @@ function GlslSandbox( renderer, uniforms = {}) {
             renderTarget: null,
             width: width,
             height: height,
-            wrapS: global.THREE.RepeatWrapping,
-            wrapT: global.THREE.RepeatWrapping,
-            minFilter: global.THREE.LinearFilter,
-            magFilter: global.THREE.LinearFilter
+            wrapS: RepeatWrapping,
+            wrapT: RepeatWrapping,
+            minFilter: LinearFilter,
+            magFilter: LinearFilter
         };
 
         this.buffers.push( b );
@@ -138,10 +148,10 @@ function GlslSandbox( renderer, uniforms = {}) {
             renderTargets: [],
             width: width,
             height: height,
-            wrapS: global.THREE.RepeatWrapping,
-            wrapT: global.THREE.RepeatWrapping,
-            minFilter: global.THREE.LinearFilter,
-            magFilter: global.THREE.LinearFilter
+            wrapS: RepeatWrapping,
+            wrapT: RepeatWrapping,
+            minFilter: LinearFilter,
+            magFilter: LinearFilter
         };
 
         this.doubleBuffers.push( db );
@@ -161,7 +171,7 @@ function GlslSandbox( renderer, uniforms = {}) {
             renderTarget: null,
             width: renderer.domElement.width,
             height: renderer.domElement.height,
-        }
+        };
         
         this.uniforms[ "u_scene" ] = { type: 't',  value: null };
 
@@ -170,8 +180,8 @@ function GlslSandbox( renderer, uniforms = {}) {
             height: this.sceneBuffer.height,
             wrapS: null,
             wrapT: null,
-            minFilter: global.THREE.LinearFilter,
-            magFilter: global.THREE.LinearFilter
+            minFilter: LinearFilter,
+            magFilter: LinearFilter
         } );
 
         return this.sceneBuffer;
@@ -189,11 +199,10 @@ function GlslSandbox( renderer, uniforms = {}) {
     };
 
     this.updateBuffers = function() {
-
         // Buffers
         for ( var i = 0, il = this.buffers.length; i < il; i++ ) {
             var b = this.buffers[ i ];
-            this.uniforms[ "u_resolution" ].value = new global.THREE.Vector2( b.width, b.height );
+            this.uniforms[ "u_resolution" ].value = new Vector2( b.width, b.height );
 
             this.doRenderTarget( b.material, b.renderTarget );
             this.uniforms[ b.name ].value = b.renderTarget.texture;
@@ -204,7 +213,7 @@ function GlslSandbox( renderer, uniforms = {}) {
         var nextTextureIndex = this.currentTextureIndex === 0 ? 1 : 0;
         for ( var i = 0, il = this.doubleBuffers.length; i < il; i++ ) {
             var db = this.doubleBuffers[ i ];
-            this.uniforms[ "u_resolution" ].value = new global.THREE.Vector2( db.width, db.height );
+            this.uniforms[ "u_resolution" ].value = new Vector2( db.width, db.height );
             this.uniforms[ db.name ].value = db.renderTargets[ currentTextureIndex ].texture;
 
             this.doRenderTarget( db.material, db.renderTargets[ nextTextureIndex ] );
@@ -260,7 +269,7 @@ function GlslSandbox( renderer, uniforms = {}) {
             renderer.render( billboard_scene, billboard_camera );
             mesh.material = passThruShader;
         }
-    }
+    };
 
     this.renderMain = function() {
         this.updateUniforms();
@@ -273,15 +282,15 @@ function GlslSandbox( renderer, uniforms = {}) {
         renderer.render( billboard_scene, billboard_camera );
         mesh.material = passThruShader;
     }
-
-    this.setSize = function(width, height) {
+  
+    this.setSize = function( width, height ) {
         if (this.sceneBuffer) {
             this.sceneBuffer.width = width;
             this.sceneBuffer.height = height;
             this.sceneBuffer.renderTarget.setSize(width, height);
         }
 
-        resolution = new global.THREE.Vector2( width, height );
+        resolution = new Vector2( width, height );
         this.uniforms[ "u_resolution" ].value = resolution;
 
         for ( var i = 0; i < this.buffers.length; i++ ) {
@@ -298,7 +307,7 @@ function GlslSandbox( renderer, uniforms = {}) {
                 db.renderTargets[ 1 ].setSize(db.width * width, db.height * height);
             }
         }
-    }
+    };
 
     this.getBufferTexture = function( index ) {
         if (index >= this.buffers.length)
@@ -315,7 +324,7 @@ function GlslSandbox( renderer, uniforms = {}) {
     };
 
     function createShaderMaterial( computeFragmentShader ) {
-        var material = new global.THREE.ShaderMaterial( {
+        var material = new ShaderMaterial( {
             uniforms: uniforms,
             vertexShader: getPassThroughVertexShader(),
             fragmentShader: computeFragmentShader
@@ -325,24 +334,24 @@ function GlslSandbox( renderer, uniforms = {}) {
     // this.createShaderMaterial = createShaderMaterial;
 
     this.createRenderTarget = function( b ) {
-        b.wrapS = b.wrapS || global.THREE.ClampToEdgeWrapping;
-        b.wrapT = b.wrapT || global.THREE.ClampToEdgeWrapping;
+        b.wrapS = b.wrapS || ClampToEdgeWrapping;
+        b.wrapT = b.wrapT || ClampToEdgeWrapping;
 
-        b.minFilter = b.minFilter || global.THREE.LinearFilter;
-        b.magFilter = b.magFilter || global.THREE.LinearFilter;
+        b.minFilter = b.minFilter || LinearFilter;
+        b.magFilter = b.magFilter || LinearFilter;
 
-        let type = global.THREE.FloatType;
+        let type = FloatType;
 
         if ( renderer.capabilities.isWebGL2 === false )
-            type = global.THREE.HalfFloatType;
+            type = HalfFloatType;
 
-        var renderTarget = new global.THREE.WebGLRenderTarget( b.width, b.height, {
+        var renderTarget = new WebGLRenderTarget( b.width, b.height, {
             wrapS: b.wrapS,
             wrapT: b.wrapT,
             minFilter: b.minFilter,
             magFilter: b.magFilter,
-            format: global.THREE.RGBAFormat,
-            type: ( /(iPad|iPhone|iPod)/g.test( navigator.userAgent ) ) ? global.THREE.HalfFloatType : type,
+            format: RGBAFormat,
+            type: ( /(iPad|iPhone|iPod)/g.test( navigator.userAgent ) ) ? HalfFloatType : type,
             stencilBuffer: false
         } );
         return renderTarget;
@@ -365,20 +374,21 @@ function GlslSandbox( renderer, uniforms = {}) {
     };
 
     function getPassThroughVertexShader() {
-        return  `varying vec2 v_texcoord;
-void main() {
-    v_texcoord = uv;
-    gl_Position = vec4(position, 1.0);
-}`;
+        return  /* glsl */`varying vec2 v_texcoord;
+        void main() {
+            v_texcoord = uv;
+            gl_Position = vec4(position, 1.0);
+        }`;
     }
 
     function getPassThroughFragmentShader() {
-        return  `uniform sampler2D texture;
-uniform vec2 u_resolution;
-void main() {
-vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-gl_FragColor = texture2D( texture, uv );
-}`;
+        return  /* glsl */`uniform sampler2D texture;
+        uniform vec2 u_resolution;
+        void main() {
+            vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+            gl_FragColor = texture2D( texture, uv );
+        }`;
     }
-
 }
+
+export { GlslSandbox }

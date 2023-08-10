@@ -1,6 +1,7 @@
-global.THREE = require('three')
+import { WebGLRenderer, PerspectiveCamera, Scene, BoxGeometry, ShaderMaterial, Mesh, Vector2, Vector3 } from 'three'
 
-var GlslSandbox = require('./');
+import { GlslSandbox }  from './index.js'
+
 let W = window,
     D = document;
 
@@ -8,7 +9,7 @@ let width = W.innerWidth;
 let height = W.innerHeight;
 let pixelRatio = W.devicePixelRatio
 
-const renderer = new THREE.WebGLRenderer({
+const renderer = new WebGLRenderer({
     // antialias: true,
     // precision: 'mediump', 
     // powerPreference: "high-performance", 
@@ -20,7 +21,7 @@ renderer.setPixelRatio(pixelRatio);
 renderer.setSize(width, height);
 D.body.appendChild(renderer.domElement);
 
-const shader_vert = resolveLygia(`
+const shader_vert = resolveLygia(/* glsl */`
 #define PLATFORM_WEBGL
 
 uniform float   u_time;
@@ -50,7 +51,7 @@ void main(void) {
 }
 `);
 
-const shader_frag = resolveLygia(`
+const shader_frag = resolveLygia(/* glsl */`
 #define PLATFORM_WEBGL
 
 uniform sampler2D   u_scene;
@@ -105,7 +106,7 @@ void main() {
 `);
 
 const uniforms = {
-    u_camera: { type: "v3", value: new THREE.Vector3() },
+    u_camera: { type: "v3", value: new Vector3() },
 };
 
 // GLSL Buffers
@@ -113,16 +114,16 @@ const glsl_sandbox = new GlslSandbox(renderer, uniforms);
 glsl_sandbox.load(shader_frag);
 
 // SPHERE
-const material = new THREE.ShaderMaterial({
+const material = new ShaderMaterial({
     vertexShader: shader_vert,
     fragmentShader: shader_frag,
     uniforms: uniforms,
 });
 material.defines = glsl_sandbox.defines;
 
-const mesh = new THREE.Mesh(new THREE.BoxGeometry( 1, 1, 1 ), material);
-const scene = new THREE.Scene();
-const cam = new THREE.PerspectiveCamera(45, width / height, 0.001, 200);
+const mesh = new Mesh(new BoxGeometry( 1, 1, 1 ), material);
+const scene = new Scene();
+const cam = new PerspectiveCamera(45, width / height, 0.001, 200);
 cam.position.z = 3;
 scene.add(mesh);
 
@@ -148,7 +149,7 @@ const resize = () => {
 
     glsl_sandbox.setSize(width, height);
 
-    material.uniforms.u_resolution.value = new THREE.Vector2(width, height);
+    material.uniforms.u_resolution.value = new Vector2(width, height);
     
     cam.aspect = width / height;
     cam.updateProjectionMatrix();
@@ -159,5 +160,3 @@ W.addEventListener("resize", resize);
 resize();
 
 draw();
-
-
