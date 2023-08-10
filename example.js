@@ -49,9 +49,8 @@ const shader_frag = resolveLygia(/* glsl */`
 #define PLATFORM_WEBGL
 
 uniform sampler2D   u_scene;
-uniform sampler2D   u_buffer0; // 512x512
 uniform sampler2D   u_doubleBuffer0; // 512x512
-uniform sampler2D   u_doubleBuffer1; // 512x512
+uniform sampler2D   u_doubleBuffer1; // 1.0x1.0
 
 uniform vec3        u_camera;
 uniform vec2        u_resolution;
@@ -91,7 +90,6 @@ void main() {
     float time = t.z + t.w + u_time * 4.0;
     t.xy += vec2(cos(time * 0.5), sin(time * 0.2)) * 0.2;
     color.rgb += hue( fract((t.z + t.w) / amount) + u_time * 0.1) * circle(t.xy, 0.1) * 0.05;
-
     color.a = 1.0;
 
 #elif defined(DOUBLE_BUFFER_1)
@@ -115,7 +113,6 @@ void main() {
     // This is the main shade if it's rendered as a 2D scene
     // and the cube's surface when rendered a 3D scene 
 
-    color.rg = st;
     color = texture2D(u_doubleBuffer0, uv);
 
 #endif

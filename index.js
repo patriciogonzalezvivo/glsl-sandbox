@@ -13,6 +13,7 @@ import {
     FloatType, 
     HalfFloatType,
     RGBAFormat,
+    NearestFilter,
 } from 'three'
 
 function GlslSandbox( renderer, uniforms = {} ) {    
@@ -69,14 +70,12 @@ function GlslSandbox( renderer, uniforms = {} ) {
 
     this.load = function( frag_src ) {
         const found_background = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*BACKGROUND)(?:\s*\))|(?:#ifdef)(?:\s*BACKGROUND)(?:\s*))/gm);
-        // console.log("background:", found_background );
         if (found_background) {
             renderer.autoClearColor = false;
             this.addBackground(frag_src);
         }
 
         const found_buffers = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*BUFFER_)(\d+)(?:\s*\))|(?:#ifdef)(?:\s*BUFFER_)(\d+)(?:\s*))/gm);
-        // console.log("buffers:", found_buffers );
         if (found_buffers)
             for (let i = 0; i < found_buffers.length; i++) {
                 let s = this.getBufferSize( frag_src, `u_buffer${i}` );
@@ -84,11 +83,11 @@ function GlslSandbox( renderer, uniforms = {} ) {
             }
         
         const found_doubleBuffers = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*DOUBLE_BUFFER_)(\d+)(?:\s*\))|(?:#ifdef)(?:\s*DOUBLE_BUFFER_)(\d+)(?:\s*))/gm);
-        // console.log("doubleBuffers:", found_doubleBuffers );
         if (found_doubleBuffers) {
             renderer.autoClearColor = false;
             for (let i = 0; i < found_doubleBuffers.length; i++) {
                 let s = this.getBufferSize( frag_src, `u_doubleBuffer${i}` );
+                console.log(s);
                 this.addDoubleBuffer(frag_src, s.width, s.height );
             }
         }
@@ -96,7 +95,6 @@ function GlslSandbox( renderer, uniforms = {} ) {
         this.main = createShaderMaterial(frag_src);
 
         const found_postprocessing = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*POSTPROCESSING)(?:\s*\))|(?:#ifdef)(?:\s*POSTPROCESSING)(?:\s*))/gm);
-        // console.log("postprocessing:", found_postprocessing );
         if (found_postprocessing)
             this.addPostprocessing(frag_src);
     };
@@ -180,6 +178,48 @@ function GlslSandbox( renderer, uniforms = {} ) {
         return this.sceneBuffer;
     };
 
+    function createShaderMaterial( computeFragmentShader ) {
+        var material = new ShaderMaterial( {
+            uniforms: uniforms,
+            vertexShader: getPassThroughVertexShader(),
+            fragmentShader: computeFragmentShader
+        } );
+        return material;
+    };
+    // this.createShaderMaterial = createShaderMaterial;
+
+    this.createRenderTarget = function( b ) {
+        b.wrapS = b.wrapS || ClampToEdgeWrapping;
+        b.wrapT = b.wrapT || ClampToEdgeWrapping;
+
+        b.minFilter = b.minFilter || NearestFilter;
+        b.magFilter = b.magFilter || NearestFilter;
+
+        let type = FloatType;
+
+        if ( renderer.capabilities.isWebGL2 === false )
+            type = HalfFloatType;
+
+        var w = b.width;
+        var h = b.height;
+
+        if (w <= 1.0 && h <= 1.0) {
+            w *= renderer.domElement.width;
+            h *= renderer.domElement.height;
+        }
+
+        var renderTarget = new WebGLRenderTarget( Math.floor(w), Math.floor(h), {
+            wrapS: b.wrapS,
+            wrapT: b.wrapT,
+            minFilter: b.minFilter,
+            magFilter: b.magFilter,
+            format: RGBAFormat,
+            type: ( /(iPad|iPhone|iPod)/g.test( navigator.userAgent ) ) ? HalfFloatType : type,
+            stencilBuffer: false
+        } );
+        return renderTarget;
+    };
+
     this.updateUniforms = function() {
         time = clock.getElapsedTime();
     
@@ -195,9 +235,12 @@ function GlslSandbox( renderer, uniforms = {} ) {
         // Buffers
         for ( var i = 0, il = this.buffers.length; i < il; i++ ) {
             var b = this.buffers[ i ];
-            this.uniforms[ "u_resolution" ].value = new Vector2( b.width, b.height );
+            if (db.width <= 1.0 && db.height <= 1.0) 
+                this.uniforms[ "u_resolution" ].value = new Vector2( Math.floor(resolution.x * b.width), Math.floor(resolution.y * b.height) );
+            else
+                this.uniforms[ "u_resolution" ].value = new Vector2( b.width, b.height );
 
-            this.doRenderTarget( b.material, b.renderTarget );
+            this.renderTarget( b.material, b.renderTarget );
             this.uniforms[ b.name ].value = b.renderTarget.texture;
         }
 
@@ -206,15 +249,41 @@ function GlslSandbox( renderer, uniforms = {} ) {
         var nextTextureIndex = this.currentTextureIndex === 0 ? 1 : 0;
         for ( var i = 0, il = this.doubleBuffers.length; i < il; i++ ) {
             var db = this.doubleBuffers[ i ];
-            this.uniforms[ "u_resolution" ].value = new Vector2( db.width, db.height );
+            if (db.width <= 1.0 && db.height <= 1.0) 
+                this.uniforms[ "u_resolution" ].value = new Vector2( Math.floor(resolution.x * db.width), Math.floor(resolution.y * db.height) );
+            else
+                this.uniforms[ "u_resolution" ].value = new Vector2( db.width, db.height );
+
             this.uniforms[ db.name ].value = db.renderTargets[ currentTextureIndex ].texture;
 
-            this.doRenderTarget( db.material, db.renderTargets[ nextTextureIndex ] );
+            this.renderTarget( db.material, db.renderTargets[ nextTextureIndex ] );
             this.uniforms[ db.name ].value = db.renderTargets[ nextTextureIndex ].texture;
         }
         
         this.currentTextureIndex = nextTextureIndex;
         renderer.setRenderTarget(null);
+    };
+
+    this.renderBackground = function() {
+        if (this.background) {
+            mesh.material = this.background;
+            renderer.render( billboard_scene, billboard_camera );
+            mesh.material = passThruShader;
+        }
+    };
+
+    this.getBufferTexture = function( index ) {
+        if (index >= this.buffers.length)
+            return;
+
+        return this.buffers[index].renderTarget.texture;
+    };
+
+    this.getDoubleBufferTexture = function( index ) {
+        if (index >= this.doubleBuffers.length)
+            return;
+
+        return this.doubleBuffers[index].renderTargets[ this.currentTextureIndex ].texture;
     };
 
     this.renderBuffer = function(index) {
@@ -237,33 +306,6 @@ function GlslSandbox( renderer, uniforms = {} ) {
         renderer.render( billboard_scene, billboard_camera );
     }
 
-    this.renderScene = function(scene, camera) {
-        this.updateUniforms();
-
-        this.updateBuffers();
-        
-        this.uniforms[ "u_resolution" ].value = resolution;
-
-        if (this.sceneBuffer) {
-            renderer.setRenderTarget(this.sceneBuffer.renderTarget);
-            // renderer.clear();
-        }
-        
-        this.renderBackground();
-        renderer.render( scene, camera );
-
-        if (this.sceneBuffer) {
-            renderer.setRenderTarget(null);
-            // renderer.clear();
-            
-            this.uniforms[ "u_resolution" ].value = resolution;
-            this.uniforms[ "u_scene" ].value = this.sceneBuffer.renderTarget.texture;
-            mesh.material = this.postprocessing;
-            renderer.render( billboard_scene, billboard_camera );
-            mesh.material = passThruShader;
-        }
-    };
-
     this.renderMain = function() {
         this.updateUniforms();
 
@@ -276,6 +318,41 @@ function GlslSandbox( renderer, uniforms = {} ) {
         mesh.material = passThruShader;
     }
   
+    this.renderScene = function(scene, camera) {
+        this.updateUniforms();
+
+        this.updateBuffers();
+        
+        this.uniforms[ "u_resolution" ].value = resolution;
+
+        if (this.sceneBuffer) {
+            renderer.setRenderTarget(this.sceneBuffer.renderTarget);
+            renderer.clear();
+        }
+        
+        this.renderBackground();
+        renderer.render( scene, camera );
+
+        if (this.sceneBuffer) {
+            renderer.setRenderTarget(null);
+            renderer.clear();
+            
+            this.uniforms[ "u_resolution" ].value = resolution;
+            this.uniforms[ "u_scene" ].value = this.sceneBuffer.renderTarget.texture;
+            mesh.material = this.postprocessing;
+            renderer.render( billboard_scene, billboard_camera );
+            mesh.material = passThruShader;
+        }
+    };
+
+    this.renderTarget = function( material, output ) {
+        mesh.material = material;
+        renderer.setRenderTarget(output);
+        renderer.clear();
+        renderer.render( billboard_scene, billboard_camera, output );
+        mesh.material = passThruShader;
+    };
+
     this.setSize = function( width, height ) {
         if (this.sceneBuffer) {
             this.sceneBuffer.width = width;
@@ -296,74 +373,12 @@ function GlslSandbox( renderer, uniforms = {} ) {
             renderer.autoClearColor = false;
             var db = this.doubleBuffers[ i ];
             if (db.width <= 1.0 && db.height <= 1.0) {
-                db.renderTargets[ 0 ].setSize(db.width * width, db.height * height);
-                db.renderTargets[ 1 ].setSize(db.width * width, db.height * height);
+                var w = Math.floor(db.width * width);
+                var h = Math.floor(db.height * height);
+                db.renderTargets[ 0 ].setSize(w, h);
+                db.renderTargets[ 1 ].setSize(w, h);
             }
         }
-    };
-
-    this.getBufferTexture = function( index ) {
-        if (index >= this.buffers.length)
-            return;
-
-        return this.buffers[index].renderTarget.texture;
-    };
-
-    this.getDoubleBufferTexture = function( index ) {
-        if (index >= this.doubleBuffers.length)
-            return;
-
-        return this.doubleBuffers[index].renderTargets[ this.currentTextureIndex ].texture;
-    };
-
-    function createShaderMaterial( computeFragmentShader ) {
-        var material = new ShaderMaterial( {
-            uniforms: uniforms,
-            vertexShader: getPassThroughVertexShader(),
-            fragmentShader: computeFragmentShader
-        } );
-        return material;
-    };
-    // this.createShaderMaterial = createShaderMaterial;
-
-    this.createRenderTarget = function( b ) {
-        b.wrapS = b.wrapS || ClampToEdgeWrapping;
-        b.wrapT = b.wrapT || ClampToEdgeWrapping;
-
-        b.minFilter = b.minFilter || LinearFilter;
-        b.magFilter = b.magFilter || LinearFilter;
-
-        let type = FloatType;
-
-        if ( renderer.capabilities.isWebGL2 === false )
-            type = HalfFloatType;
-
-        var renderTarget = new WebGLRenderTarget( b.width, b.height, {
-            wrapS: b.wrapS,
-            wrapT: b.wrapT,
-            minFilter: b.minFilter,
-            magFilter: b.magFilter,
-            format: RGBAFormat,
-            type: ( /(iPad|iPhone|iPod)/g.test( navigator.userAgent ) ) ? HalfFloatType : type,
-            stencilBuffer: false
-        } );
-        return renderTarget;
-    };
-
-    this.renderBackground = function() {
-        if (this.background) {
-            mesh.material = this.background;
-            renderer.render( billboard_scene, billboard_camera );
-            mesh.material = passThruShader;
-        }
-    };
-
-    this.doRenderTarget = function( material, output ) {
-        mesh.material = material;
-        renderer.setRenderTarget(output);
-        renderer.clear();
-        renderer.render( billboard_scene, billboard_camera, output );
-        mesh.material = passThruShader;
     };
 
     function getPassThroughVertexShader() {

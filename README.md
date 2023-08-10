@@ -10,11 +10,17 @@ npm install glsl-sandbox --save
 
 ## Usage
 
-<!-- [![NPM](https://nodei.co/npm/three-shader-fxaa.png)](https://nodei.co/npm/three-shader-fxaa/) -->
+TODO
 
-## From Source
+## Demo
 
-To build/run from source, first `git clone` this repo and then:
+To build/run from source, first `git clone` this repo 
+
+```sh
+git clone git@github.com:patriciogonzalezvivo/glsl-sandbox.git
+```
+
+And then:
 
 ```sh
 npm install
@@ -24,7 +30,7 @@ Once installed, you can test/build the demo like this:
 
 ```sh
 # to run demo dev server/scripts
-npm run start
+npm run dev
 
 # to run demo build scripts
 npm run build
