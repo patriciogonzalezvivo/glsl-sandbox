@@ -10,14 +10,7 @@ let width = W.innerWidth;
 let height = W.innerHeight;
 let pixelRatio = W.devicePixelRatio
 
-const renderer = new WebGLRenderer({
-    // antialias: true,
-    // precision: 'mediump', 
-    // powerPreference: "high-performance", 
-    // depth: false, 
-    // alpha: true,
-    // preserveDrawingBuffer: true,
-});
+const renderer = new WebGLRenderer();
 renderer.setPixelRatio(pixelRatio);
 renderer.setSize(width, height);
 D.body.appendChild(renderer.domElement);
@@ -39,7 +32,7 @@ varying vec4    v_position;
 void main(void) {
     v_position = vec4(position, 1.0);
 
-    mat4 rot =  rotate4dY(u_time) *
+    mat4 rot =  rotate4dY(u_time * 0.5) *
                 rotate4dX(PI*0.2) * 
                 rotate4dZ(PI*0.25);
 
@@ -80,31 +73,47 @@ void main() {
     vec2 uv = v_texcoord;
 
 #ifdef BACKGROUND
+    // This renders the background of the 3D scene
+
     st = ratio(st, u_resolution);
-    color.rgb += (1.0-circle(st, 0.8)) * vec3(st, sin(u_time)) * 0.1;
+    st += vec2(cos(u_time * 0.5), sin(u_time * 0.2)) * 0.5;
+    color.rgb += hue( fract(u_time * 0.1) ) * circle(st, 0.025);
 
 #elif defined(DOUBLE_BUFFER_0)
+    // First Ping Pong Buffer for the grid 
+    // for circles trail that will be rendered in the surface of the cube.
+    // Notice this double buffer will be always 512x512
+
     color = texture2D(u_doubleBuffer0, st) * 0.99;
 
     float amount = 10.0;
     vec4 t = sqTile(uv, amount);
     float time = t.z + t.w + u_time * 4.0;
-    t.xy += vec2(cos(time), sin(time)) * 0.2;
+    t.xy += vec2(cos(time * 0.5), sin(time * 0.2)) * 0.2;
     color.rgb += hue( fract((t.z + t.w) / amount) + u_time * 0.1) * circle(t.xy, 0.1) * 0.05;
 
     color.a = 1.0;
 
 #elif defined(DOUBLE_BUFFER_1)
-    vec4 scene = texture2D(u_scene, st);
-    
+    // Second Ping Pong Buffer for making the entire scene
+    // (background and cube - width dots - ) create trails
+    // Notice this double buffer will be resize to match the screen size
+
     color += texture2D(u_doubleBuffer1, st) * 0.99;
+    vec4 scene = texture2D(u_scene, st);
     color.rgb += scene.rgb * scene.a * 0.1;
 
-
 #elif defined(POSTPROCESSING)
+    // This is the final postprocessing pass where displays the 
+    // content of the second double buffer (the one with the trails)
+    // instead of the scene directly to screen. 
+    // Comment both the "#elif defined(POSTPROCESSING)" and 
+    // and next line to see the actual scene
     color = texture2D(u_doubleBuffer1, st);
 
 #else
+    // This is the main shade if it's rendered as a 2D scene
+    // and the cube's surface when rendered a 3D scene 
 
     color.rg = st;
     color = texture2D(u_doubleBuffer0, uv);
