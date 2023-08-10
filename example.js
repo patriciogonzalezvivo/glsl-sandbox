@@ -2,6 +2,7 @@ import { WebGLRenderer, PerspectiveCamera, Scene, BoxGeometry, ShaderMaterial, M
 import { resolveLygia } from 'resolve-lygia'
 
 import { GlslSandbox }  from './index.js'
+// import { GlslSandbox }  from './class.js'
 
 let W = window,
     D = document;
