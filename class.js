@@ -95,7 +95,7 @@ class GlslSandbox {
             }
         }
 
-        this.main = createShaderMaterial(frag_src);
+        this.main = createShaderMaterial(frag_src, this.uniforms);
 
         const found_postprocessing = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*POSTPROCESSING)(?:\s*\))|(?:#ifdef)(?:\s*POSTPROCESSING)(?:\s*))/gm);
         if (found_postprocessing)
@@ -103,14 +103,14 @@ class GlslSandbox {
     }
 
     addBackground(frag_src) {
-        this.background = createShaderMaterial(`#define BACKGROUND\n${frag_src}`);
+        this.background = createShaderMaterial(`#define BACKGROUND\n${frag_src}`, this.uniforms);
         this.background.defines = this.defines;
         return this.background;
     }
 
     addBuffer(frag_src, width, height) {
         let index = this.buffers.length;
-        let material = createShaderMaterial(`#define BUFFER_${index}\n${frag_src}`);
+        let material = createShaderMaterial(`#define BUFFER_${index}\n${frag_src}`, this.uniforms);
         material.defines = this.defines;
         let b = {
             name: `u_buffer${index}`,
@@ -134,7 +134,7 @@ class GlslSandbox {
 
     addDoubleBuffer(frag_src, width, height) {
         let index = this.doubleBuffers.length;
-        let material = createShaderMaterial(`#define DOUBLE_BUFFER_${index}\n${frag_src}`);
+        let material = createShaderMaterial(`#define DOUBLE_BUFFER_${index}\n${frag_src}`, this.uniforms);
         material.defines = this.defines;
         let db = {
             name: `u_doubleBuffer${index}`,
@@ -158,7 +158,7 @@ class GlslSandbox {
     }
 
     addPostprocessing(frag_src) {
-        this.postprocessing = createShaderMaterial(`#define POSTPROCESSING\n${frag_src}`);
+        this.postprocessing = createShaderMaterial(`#define POSTPROCESSING\n${frag_src}`, this.uniforms);
         this.postprocessing.defines = this.defines;
 
         this.sceneBuffer = {
