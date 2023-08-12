@@ -178,11 +178,11 @@ function GlslSandbox( renderer, uniforms = {} ) {
         return this.sceneBuffer;
     };
 
-    function createShaderMaterial( computeFragmentShader ) {
+    function createShaderMaterial( fragmentShader ) {
         var material = new ShaderMaterial( {
             uniforms: uniforms,
             vertexShader: getPassThroughVertexShader(),
-            fragmentShader: computeFragmentShader
+            fragmentShader: fragmentShader
         } );
         return material;
     };
@@ -235,7 +235,7 @@ function GlslSandbox( renderer, uniforms = {} ) {
         // Buffers
         for ( var i = 0, il = this.buffers.length; i < il; i++ ) {
             var b = this.buffers[ i ];
-            if (db.width <= 1.0 && db.height <= 1.0) 
+            if (b.width <= 1.0 && b.height <= 1.0) 
                 this.uniforms[ "u_resolution" ].value = new Vector2( Math.floor(resolution.x * b.width), Math.floor(resolution.y * b.height) );
             else
                 this.uniforms[ "u_resolution" ].value = new Vector2( b.width, b.height );
