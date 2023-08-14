@@ -376,11 +376,11 @@ class GlslSandbox {
     }
 }
 
-function createShaderMaterial(computeFragmentShader, uniforms) {
+function createShaderMaterial(fragmentShader, uniforms) {
     let material = new ShaderMaterial({
         uniforms: uniforms === undefined ? {} : uniforms,
         vertexShader: getPassThroughVertexShader(),
-        fragmentShader: computeFragmentShader
+        fragmentShader,
     });
     return material;
 }
