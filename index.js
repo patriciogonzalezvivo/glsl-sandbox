@@ -1,115 +1,118 @@
-import { 
+import {
     WebGLRenderTarget,
-    Camera, 
-    Scene, 
-    PlaneGeometry, 
+    Camera,
+    Scene,
+    PlaneGeometry,
     ShaderMaterial,
-    Mesh, 
-    Clock, 
-    Vector2, 
-    LinearFilter, 
+    Mesh,
+    Clock,
+    Vector2,
+    LinearFilter,
     RepeatWrapping,
-    ClampToEdgeWrapping, 
-    FloatType, 
+    ClampToEdgeWrapping,
+    FloatType,
     HalfFloatType,
     RGBAFormat,
     NearestFilter,
-} from 'three'
+} from 'three';
 
-function GlslSandbox( renderer, uniforms = {} ) {    
-    if (!renderer.capabilities.floatFragmentTextures )
-        return "No OES_texture_float support for float textures.";
-    
-    this.defines = {};
-    this.uniforms = uniforms;
-    this.uniforms.u_resolution = { type: "v2", value: new Vector2() };
-    this.uniforms.u_delta = { type: "f", value: 0.0 },
-    this.uniforms.u_time = { type: "f", value: 0.0 },
-    this.uniforms.u_frame = { type: 'int', value: 0 },
-    this.currentTextureIndex = 0;
+class GlslSandbox {
+    constructor(renderer, uniforms = {}) {
+        if (!renderer.capabilities.floatFragmentTextures)
+            throw new Error("No OES_texture_float support for float textures.");
 
-    this.buffers = [];
-    this.doubleBuffers = [];
-    this.background = null;
-    this.main = null;
-    this.sceneBuffer = null;
-    this.postprocessing = null;
+        this.renderer = renderer;
 
-    var billboard_scene = new Scene();
-    var billboard_camera = new Camera();
-    billboard_camera.position.z = 1;
-    var passThruUniforms = { texture: { value: null } };
-    var passThruShader = createShaderMaterial( getPassThroughFragmentShader(), passThruUniforms );
+        this.uniforms = uniforms;
+        this.uniforms.u_resolution = { value: new Vector2() };
+        this.uniforms.u_delta = { value: 0.0 };
+        this.uniforms.u_time = { value: 0.0 };
+        this.uniforms.u_frame = { value: 0 };
 
-    var mesh = new Mesh( new PlaneGeometry( 2, 2 ), passThruShader );
-    billboard_scene.add( mesh );
+        this.currentTextureIndex = 0;
+        this.buffers = [];
+        this.doubleBuffers = [];
+        this.background = null;
+        this.main = null;
+        this.sceneBuffer = null;
+        this.postprocessing = null;
 
-    var clock = new Clock();
-    var frame = 0;
-    var lastTime = 0.0;
-    var time = 0.0;
-    let resolution = new Vector2(renderer.domElement.width, renderer.domElement.height);
+        this.billboard_scene = new Scene();
+        this.billboard_camera = new Camera();
+        this.billboard_camera.position.z = 1;
+        this.passThruUniforms = { texture: { value: null } };
+        this.passThruShader = createShaderMaterial(getPassThroughFragmentShader(), this.passThruUniforms);
 
-    this.getBufferSize = function( frag_src, name ) {
+        this.mesh = new Mesh(new PlaneGeometry(2, 2), this.passThruShader);
+        this.billboard_scene.add(this.mesh);
+
+        this.clock = new Clock();
+        this.frame = 0;
+        this.lastTime = 0.0;
+        this.time = 0.0;
+        this.resolution = new Vector2(renderer.domElement.width, renderer.domElement.height);
+    }
+
+    getBufferSize(frag_src, name) {
         const size_exp = new RegExp(`uniform\\s*sampler2D\\s*${name}\\;\\s*\\/\\/*\\s(\\d+)x(\\d+)`, 'gm');
         const size_found = size_exp.exec(frag_src);
         if (size_found)
-            return {width: parseInt(size_found[1]), height: parseInt(size_found[2]) };
-        
+            return { width: parseInt(size_found[1]), height: parseInt(size_found[2]) };
+
         const scale_exp = new RegExp(`uniform\\s*sampler2D\\s*${name}\\;\\s*\\/\\/*\\s(\\d*\\.\\d+|\\d+)`, 'gm');
         const scale_found = scale_exp.exec(frag_src);
         if (scale_found) {
             if (scale_found.length > 2)
-                return {width: parseFloat(scale_found[1]), height: parseFloat(scale_found[2]) };
+                return { width: parseFloat(scale_found[1]), height: parseFloat(scale_found[2]) };
             else if (scale_found.length > 1)
-                return {width: parseFloat(scale_found[1]), height: parseFloat(scale_found[1]) };
+                return { width: parseFloat(scale_found[1]), height: parseFloat(scale_found[1]) };
         }
 
-        return {width: 1.0, height: 1.0};
-    };
+        return { width: 1.0, height: 1.0 };
+    }
 
-    this.load = function( frag_src ) {
+    load(frag_src) {
         const found_background = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*BACKGROUND)(?:\s*\))|(?:#ifdef)(?:\s*BACKGROUND)(?:\s*))/gm);
         if (found_background) {
-            renderer.autoClearColor = false;
+            this.renderer.autoClearColor = false;
             this.addBackground(frag_src);
         }
 
         const found_buffers = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*BUFFER_)(\d+)(?:\s*\))|(?:#ifdef)(?:\s*BUFFER_)(\d+)(?:\s*))/gm);
         if (found_buffers)
-            for (let i = 0; i < found_buffers.length; i++) {
-                let s = this.getBufferSize( frag_src, `u_buffer${i}` );
-                this.addBuffer(frag_src, s.width, s.height );
+            for (let i = 0;i < found_buffers.length;i++) {
+                let s = this.getBufferSize(frag_src, `u_buffer${i}`);
+                this.addBuffer(frag_src, s.width, s.height);
             }
-        
+
         const found_doubleBuffers = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*DOUBLE_BUFFER_)(\d+)(?:\s*\))|(?:#ifdef)(?:\s*DOUBLE_BUFFER_)(\d+)(?:\s*))/gm);
         if (found_doubleBuffers) {
-            renderer.autoClearColor = false;
-            for (let i = 0; i < found_doubleBuffers.length; i++) {
-                let s = this.getBufferSize( frag_src, `u_doubleBuffer${i}` );
-                console.log(s);
-                this.addDoubleBuffer(frag_src, s.width, s.height );
+            this.renderer.autoClearColor = false;
+            for (let i = 0;i < found_doubleBuffers.length;i++) {
+                let s = this.getBufferSize(frag_src, `u_doubleBuffer${i}`);
+                // console.log(s);
+                this.addDoubleBuffer(frag_src, s.width, s.height);
             }
         }
 
-        this.main = createShaderMaterial(frag_src);
+        this.main = createShaderMaterial(frag_src, this.uniforms);
 
         const found_postprocessing = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*POSTPROCESSING)(?:\s*\))|(?:#ifdef)(?:\s*POSTPROCESSING)(?:\s*))/gm);
         if (found_postprocessing)
             this.addPostprocessing(frag_src);
-    };
+    }
 
-    this.addBackground = function( frag_src ) {
-        this.background = createShaderMaterial(`#define BACKGROUND\n${frag_src}`);
+    addBackground(frag_src) {
+        this.background = createShaderMaterial(`#define BACKGROUND\n${frag_src}`, this.uniforms);
         this.background.defines = this.defines;
         return this.background;
-    };
+    }
 
-    this.addBuffer = function( frag_src, width, height ) {
+    addBuffer(frag_src, width, height) {
         let index = this.buffers.length;
-        var material = createShaderMaterial(`#define BUFFER_${index}\n${frag_src}`);
+        let material = createShaderMaterial(`#define BUFFER_${index}\n${frag_src}`, this.uniforms);
         material.defines = this.defines;
-        var b = {
+        let b = {
             name: `u_buffer${index}`,
             material: material,
             renderTarget: null,
@@ -121,19 +124,19 @@ function GlslSandbox( renderer, uniforms = {} ) {
             magFilter: LinearFilter
         };
 
-        this.buffers.push( b );
-        this.uniforms[ b.name ] = { type: 't', value: null };
+        this.buffers.push(b);
+        this.uniforms[b.name] = { value: null };
 
-        b.renderTarget = this.createRenderTarget( b );
+        b.renderTarget = this.createRenderTarget(b);
 
         return b;
-    };
+    }
 
-    this.addDoubleBuffer = function( frag_src, width, height ) {
+    addDoubleBuffer(frag_src, width, height) {
         let index = this.doubleBuffers.length;
-        var material = createShaderMaterial(`#define DOUBLE_BUFFER_${index}\n${frag_src}`);
+        let material = createShaderMaterial(`#define DOUBLE_BUFFER_${index}\n${frag_src}`, this.uniforms);
         material.defines = this.defines;
-        var db = {
+        let db = {
             name: `u_doubleBuffer${index}`,
             material: material,
             renderTargets: [],
@@ -145,50 +148,40 @@ function GlslSandbox( renderer, uniforms = {} ) {
             magFilter: LinearFilter
         };
 
-        this.doubleBuffers.push( db );
-        this.uniforms[ db.name ] = { type: 't', value: null };
+        this.doubleBuffers.push(db);
+        this.uniforms[db.name] = { value: null };
 
-        db.renderTargets[ 0 ] = this.createRenderTarget( db );
-        db.renderTargets[ 1 ] = this.createRenderTarget( db );
+        db.renderTargets[0] = this.createRenderTarget(db);
+        db.renderTargets[1] = this.createRenderTarget(db);
 
         return db;
-    };
+    }
 
-    this.addPostprocessing = function( frag_src ) {
-        this.postprocessing = createShaderMaterial(`#define POSTPROCESSING\n${frag_src}`);
+    addPostprocessing(frag_src) {
+        this.postprocessing = createShaderMaterial(`#define POSTPROCESSING\n${frag_src}`, this.uniforms);
         this.postprocessing.defines = this.defines;
 
         this.sceneBuffer = {
             renderTarget: null,
-            width: renderer.domElement.width,
-            height: renderer.domElement.height,
+            width: this.renderer.domElement.width,
+            height: this.renderer.domElement.height,
         };
-        
-        this.uniforms[ "u_scene" ] = { type: 't',  value: null };
 
-        this.sceneBuffer.renderTarget = this.createRenderTarget( {
+        this.uniforms["u_scene"] = { value: null };
+
+        this.sceneBuffer.renderTarget = this.createRenderTarget({
             width: this.sceneBuffer.width,
             height: this.sceneBuffer.height,
             wrapS: null,
             wrapT: null,
             minFilter: LinearFilter,
             magFilter: LinearFilter
-        } );
+        });
 
         return this.sceneBuffer;
-    };
+    }
 
-    function createShaderMaterial( computeFragmentShader ) {
-        var material = new ShaderMaterial( {
-            uniforms: uniforms,
-            vertexShader: getPassThroughVertexShader(),
-            fragmentShader: computeFragmentShader
-        } );
-        return material;
-    };
-    // this.createShaderMaterial = createShaderMaterial;
-
-    this.createRenderTarget = function( b ) {
+    createRenderTarget(b) {
         b.wrapS = b.wrapS || ClampToEdgeWrapping;
         b.wrapT = b.wrapT || ClampToEdgeWrapping;
 
@@ -197,206 +190,216 @@ function GlslSandbox( renderer, uniforms = {} ) {
 
         let type = FloatType;
 
-        if ( renderer.capabilities.isWebGL2 === false )
+        if (this.renderer.capabilities.isWebGL2 === false)
             type = HalfFloatType;
 
-        var w = b.width;
-        var h = b.height;
+        let w = b.width;
+        let h = b.height;
 
         if (w <= 1.0 && h <= 1.0) {
-            w *= renderer.domElement.width;
-            h *= renderer.domElement.height;
+            w *= this.renderer.domElement.width;
+            h *= this.renderer.domElement.height;
         }
 
-        var renderTarget = new WebGLRenderTarget( Math.floor(w), Math.floor(h), {
+        let renderTarget = new WebGLRenderTarget(Math.floor(w), Math.floor(h), {
             wrapS: b.wrapS,
             wrapT: b.wrapT,
             minFilter: b.minFilter,
             magFilter: b.magFilter,
             format: RGBAFormat,
-            type: ( /(iPad|iPhone|iPod)/g.test( navigator.userAgent ) ) ? HalfFloatType : type,
+            type: (/(iPad|iPhone|iPod)/g.test(navigator.userAgent)) ? HalfFloatType : type,
             stencilBuffer: false
-        } );
+        });
+
         return renderTarget;
-    };
+    }
 
-    this.updateUniforms = function() {
-        time = clock.getElapsedTime();
-    
-        this.uniforms.u_time.value = time;
-        this.uniforms.u_delta.value = time - lastTime;
-        this.uniforms.u_frame.value = frame;
+    updateUniforms() {
+        this.time = this.clock.getElapsedTime();
 
-        lastTime = time;
-        frame++;
-    };
+        this.uniforms.u_time.value = this.time;
+        this.uniforms.u_delta.value = this.time - this.lastTime;
+        this.uniforms.u_frame.value = this.frame;
 
-    this.updateBuffers = function() {
+        this.lastTime = this.time;
+        this.frame++;
+    }
+
+    updateBuffers() {
         // Buffers
-        for ( var i = 0, il = this.buffers.length; i < il; i++ ) {
-            var b = this.buffers[ i ];
-            if (db.width <= 1.0 && db.height <= 1.0) 
-                this.uniforms[ "u_resolution" ].value = new Vector2( Math.floor(resolution.x * b.width), Math.floor(resolution.y * b.height) );
+        for (let i = 0, il = this.buffers.length;i < il;i++) {
+            let b = this.buffers[i];
+            if (b.width <= 1.0 && b.height <= 1.0)
+                this.uniforms["u_resolution"].value = new Vector2(Math.floor(this.resolution.x * b.width), Math.floor(this.resolution.y * b.height));
             else
-                this.uniforms[ "u_resolution" ].value = new Vector2( b.width, b.height );
+                this.uniforms["u_resolution"].value = new Vector2(b.width, b.height);
 
-            this.renderTarget( b.material, b.renderTarget );
-            this.uniforms[ b.name ].value = b.renderTarget.texture;
+            this.renderTarget(b.material, b.renderTarget);
+            this.uniforms[b.name].value = b.renderTarget.texture;
         }
 
         // Double buffers
-        var currentTextureIndex = this.currentTextureIndex;
-        var nextTextureIndex = this.currentTextureIndex === 0 ? 1 : 0;
-        for ( var i = 0, il = this.doubleBuffers.length; i < il; i++ ) {
-            var db = this.doubleBuffers[ i ];
-            if (db.width <= 1.0 && db.height <= 1.0) 
-                this.uniforms[ "u_resolution" ].value = new Vector2( Math.floor(resolution.x * db.width), Math.floor(resolution.y * db.height) );
+        let currentTextureIndex = this.currentTextureIndex;
+        let nextTextureIndex = this.currentTextureIndex === 0 ? 1 : 0;
+        for (let i = 0, il = this.doubleBuffers.length;i < il;i++) {
+            let db = this.doubleBuffers[i];
+            if (db.width <= 1.0 && db.height <= 1.0)
+                this.uniforms["u_resolution"].value = new Vector2(Math.floor(this.resolution.x * db.width), Math.floor(this.resolution.y * db.height));
             else
-                this.uniforms[ "u_resolution" ].value = new Vector2( db.width, db.height );
+                this.uniforms["u_resolution"].value = new Vector2(db.width, db.height);
 
-            this.uniforms[ db.name ].value = db.renderTargets[ currentTextureIndex ].texture;
+            this.uniforms[db.name].value = db.renderTargets[currentTextureIndex].texture;
 
-            this.renderTarget( db.material, db.renderTargets[ nextTextureIndex ] );
-            this.uniforms[ db.name ].value = db.renderTargets[ nextTextureIndex ].texture;
+            this.renderTarget(db.material, db.renderTargets[nextTextureIndex]);
+            this.uniforms[db.name].value = db.renderTargets[nextTextureIndex].texture;
         }
-        
+
         this.currentTextureIndex = nextTextureIndex;
-        renderer.setRenderTarget(null);
-    };
+        this.renderer.setRenderTarget(null);
+    }
 
-    this.renderBackground = function() {
+    renderBackground() {
         if (this.background) {
-            mesh.material = this.background;
-            renderer.render( billboard_scene, billboard_camera );
-            mesh.material = passThruShader;
+            this.mesh.material = this.background;
+            this.renderer.render(this.billboard_scene, this.billboard_camera);
+            this.mesh.material = this.passThruShader;
         }
-    };
+    }
 
-    this.getBufferTexture = function( index ) {
+    getBufferTexture(index) {
         if (index >= this.buffers.length)
             return;
 
         return this.buffers[index].renderTarget.texture;
-    };
+    }
 
-    this.getDoubleBufferTexture = function( index ) {
+    getDoubleBufferTexture(index) {
         if (index >= this.doubleBuffers.length)
             return;
 
-        return this.doubleBuffers[index].renderTargets[ this.currentTextureIndex ].texture;
-    };
+        return this.doubleBuffers[index].renderTargets[this.currentTextureIndex].texture;
+    }
 
-    this.renderBuffer = function(index) {
+    renderBuffer(index) {
         if (index >= this.buffers.length)
             return;
 
-        this.uniforms[ "u_resolution" ].value = resolution;
-        passThruUniforms.texture.value = this.geBufferTexture(index);
-        mesh.material = passThruShader;
-        renderer.render( billboard_scene, billboard_camera );
+        this.uniforms["u_resolution"].value = this.resolution;
+        this.passThruUniforms.texture.value = this.geBufferTexture(index);
+        this.mesh.material = this.passThruShader;
+        this.renderer.render(this.billboard_scene, this.billboard_camera);
     }
 
-    this.renderDoubleBuffer = function(index) {
+    renderDoubleBuffer(index) {
         if (index >= this.doubleBuffers.length)
             return;
 
-        this.uniforms[ "u_resolution" ].value = resolution;
-        passThruUniforms.texture.value = this.getDoubleBufferTexture(index);
-        mesh.material = passThruShader;
-        renderer.render( billboard_scene, billboard_camera );
+        this.uniforms["u_resolution"].value = this.resolution;
+        this.passThruUniforms.texture.value = this.getDoubleBufferTexture(index);
+        this.mesh.material = this.passThruShader;
+        this.renderer.render(this.billboard_scene, this.billboard_camera);
     }
 
-    this.renderMain = function() {
+    renderMain() {
         this.updateUniforms();
 
         this.updateBuffers();
-        
-        this.uniforms[ "u_resolution" ].value = resolution;
 
-        mesh.material = this.main;
-        renderer.render( billboard_scene, billboard_camera );
-        mesh.material = passThruShader;
+        this.uniforms["u_resolution"].value = this.resolution;
+
+        this.mesh.material = this.main;
+        this.renderer.render(this.billboard_scene, this.billboard_camera);
+        this.mesh.material = this.passThruShader;
     }
-  
-    this.renderScene = function(scene, camera) {
+
+    renderScene(scene, camera) {
         this.updateUniforms();
 
         this.updateBuffers();
-        
-        this.uniforms[ "u_resolution" ].value = resolution;
+
+        this.uniforms["u_resolution"].value = this.resolution;
 
         if (this.sceneBuffer) {
-            renderer.setRenderTarget(this.sceneBuffer.renderTarget);
-            renderer.clear();
+            this.renderer.setRenderTarget(this.sceneBuffer.renderTarget);
+            this.renderer.clear();
         }
-        
+
         this.renderBackground();
-        renderer.render( scene, camera );
+        this.renderer.render(scene, camera);
 
         if (this.sceneBuffer) {
-            renderer.setRenderTarget(null);
-            renderer.clear();
-            
-            this.uniforms[ "u_resolution" ].value = resolution;
-            this.uniforms[ "u_scene" ].value = this.sceneBuffer.renderTarget.texture;
-            mesh.material = this.postprocessing;
-            renderer.render( billboard_scene, billboard_camera );
-            mesh.material = passThruShader;
+            this.renderer.setRenderTarget(null);
+            this.renderer.clear();
+
+            this.uniforms["u_resolution"].value = this.resolution;
+            this.uniforms["u_scene"].value = this.sceneBuffer.renderTarget.texture;
+            this.mesh.material = this.postprocessing;
+            this.renderer.render(this.billboard_scene, this.billboard_camera);
+            this.mesh.material = this.passThruShader;
         }
-    };
+    }
 
-    this.renderTarget = function( material, output ) {
-        mesh.material = material;
-        renderer.setRenderTarget(output);
-        renderer.clear();
-        renderer.render( billboard_scene, billboard_camera, output );
-        mesh.material = passThruShader;
-    };
+    renderTarget(material, output) {
+        this.mesh.material = material;
+        this.renderer.setRenderTarget(output);
+        this.renderer.clear();
+        this.renderer.render(this.billboard_scene, this.billboard_camera, output);
+        this.mesh.material = this.passThruShader;
+    }
 
-    this.setSize = function( width, height ) {
+    setSize(width, height) {
         if (this.sceneBuffer) {
             this.sceneBuffer.width = width;
             this.sceneBuffer.height = height;
             this.sceneBuffer.renderTarget.setSize(width, height);
         }
 
-        resolution = new Vector2( width, height );
-        this.uniforms[ "u_resolution" ].value = resolution;
+        this.resolution = new Vector2(width, height);
+        this.uniforms["u_resolution"].value = this.resolution;
 
-        for ( var i = 0; i < this.buffers.length; i++ ) {
-            var b = this.buffers[ i ];
+        for (let i = 0;i < this.buffers.length;i++) {
+            let b = this.buffers[i];
             if (b.width <= 1.0 && b.height <= 1.0)
                 b.renderTarget.setSize(b.width * width, b.height * height);
         }
 
-        for (var i = 0; i < this.doubleBuffers.length; i++) {
-            renderer.autoClearColor = false;
-            var db = this.doubleBuffers[ i ];
+        for (let i = 0;i < this.doubleBuffers.length;i++) {
+            this.renderer.autoClearColor = false;
+            let db = this.doubleBuffers[i];
             if (db.width <= 1.0 && db.height <= 1.0) {
-                var w = Math.floor(db.width * width);
-                var h = Math.floor(db.height * height);
-                db.renderTargets[ 0 ].setSize(w, h);
-                db.renderTargets[ 1 ].setSize(w, h);
+                let w = Math.floor(db.width * width);
+                let h = Math.floor(db.height * height);
+                db.renderTargets[0].setSize(w, h);
+                db.renderTargets[1].setSize(w, h);
             }
         }
-    };
-
-    function getPassThroughVertexShader() {
-        return  /* glsl */`varying vec2 v_texcoord;
-        void main() {
-            v_texcoord = uv;
-            gl_Position = vec4(position, 1.0);
-        }`;
-    }
-
-    function getPassThroughFragmentShader() {
-        return  /* glsl */`uniform sampler2D texture;
-        uniform vec2 u_resolution;
-        void main() {
-            vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-            gl_FragColor = texture2D( texture, uv );
-        }`;
     }
 }
 
-export { GlslSandbox }
+function createShaderMaterial(fragmentShader, uniforms) {
+    let material = new ShaderMaterial({
+        uniforms: uniforms === undefined ? {} : uniforms,
+        vertexShader: getPassThroughVertexShader(),
+        fragmentShader,
+    });
+    return material;
+}
+
+function getPassThroughVertexShader() {
+    return  /* glsl */`varying vec2 v_texcoord;
+    void main() {
+        v_texcoord = uv;
+        gl_Position = vec4(position, 1.0);
+    }`;
+}
+
+function getPassThroughFragmentShader() {
+    return  /* glsl */`uniform sampler2D texture;
+    uniform vec2 u_resolution;
+    void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+        gl_FragColor = texture2D( texture, uv );
+    }`;
+}
+
+export { GlslSandbox };
