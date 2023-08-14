@@ -1,15 +1,15 @@
-import { WebGLRenderer, PerspectiveCamera, Scene, BoxGeometry, ShaderMaterial, Mesh, Vector2, Vector3 } from 'three'
-import { resolveLygia } from 'resolve-lygia'
+import { WebGLRenderer, PerspectiveCamera, Scene, BoxGeometry, ShaderMaterial, Mesh, Vector2, Vector3 } from 'three';
+import { resolveLygia } from 'resolve-lygia';
 
 // import { GlslSandbox }  from './index.js'
-import { GlslSandbox }  from './class.js'
+import { GlslSandbox } from './class.js';
 
 let W = window,
     D = document;
 
 let width = W.innerWidth;
 let height = W.innerHeight;
-let pixelRatio = W.devicePixelRatio
+let pixelRatio = W.devicePixelRatio;
 
 const renderer = new WebGLRenderer();
 renderer.setPixelRatio(pixelRatio);
@@ -138,7 +138,7 @@ const material = new ShaderMaterial({
 });
 material.defines = glsl_sandbox.defines;
 
-const mesh = new Mesh(new BoxGeometry( 1, 1, 1 ), material);
+const mesh = new Mesh(new BoxGeometry(1, 1, 1), material);
 const scene = new Scene();
 const cam = new PerspectiveCamera(45, width / height, 0.001, 200);
 cam.position.z = 3;
@@ -167,7 +167,7 @@ const resize = () => {
     glsl_sandbox.setSize(width, height);
 
     material.uniforms.u_resolution.value = new Vector2(width, height);
-    
+
     cam.aspect = width / height;
     cam.updateProjectionMatrix();
     draw();
