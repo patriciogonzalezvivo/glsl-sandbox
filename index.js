@@ -22,6 +22,7 @@ class GlslSandbox {
             throw new Error("No OES_texture_float support for float textures.");
 
         this.renderer = renderer;
+        this.pixelRatio = Math.max(2, renderer.getPixelRatio());
 
         this.defines = {};
         this.uniforms = uniforms;
@@ -106,7 +107,7 @@ class GlslSandbox {
     addBackground(frag_src) {
         this.background = createShaderMaterial(`#define BACKGROUND\n${frag_src}`, this.uniforms);
         this.background.defines = this.defines;
-        
+
         return this.background;
     }
 
@@ -350,6 +351,9 @@ class GlslSandbox {
     }
 
     setSize(width, height) {
+        width *= this.pixelRatio;
+        height *= this.pixelRatio;
+
         if (this.sceneBuffer) {
             this.sceneBuffer.width = width;
             this.sceneBuffer.height = height;
@@ -384,7 +388,7 @@ function createShaderMaterial(fragmentShader, uniforms) {
         vertexShader: getPassThroughVertexShader(),
         fragmentShader,
     });
-    
+
     return material;
 }
 
