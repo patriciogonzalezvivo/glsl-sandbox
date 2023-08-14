@@ -22,7 +22,7 @@ class GlslSandbox {
             throw new Error("No OES_texture_float support for float textures.");
 
         this.renderer = renderer;
-        this.pixelRatio = Math.max(2, renderer.getPixelRatio());
+        this.pixelRatio = Math.max(renderer.getPixelRatio(), 2);
 
         this.defines = {};
         this.uniforms = uniforms;
