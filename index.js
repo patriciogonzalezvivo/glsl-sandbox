@@ -23,13 +23,14 @@ class GlslSandbox {
 
         this.renderer = renderer;
 
+        this.defines = {};
         this.uniforms = uniforms;
         this.uniforms.u_resolution = { value: new Vector2() };
         this.uniforms.u_delta = { value: 0.0 };
         this.uniforms.u_time = { value: 0.0 };
         this.uniforms.u_frame = { value: 0 };
-
         this.currentTextureIndex = 0;
+
         this.buffers = [];
         this.doubleBuffers = [];
         this.background = null;
@@ -105,6 +106,7 @@ class GlslSandbox {
     addBackground(frag_src) {
         this.background = createShaderMaterial(`#define BACKGROUND\n${frag_src}`, this.uniforms);
         this.background.defines = this.defines;
+        
         return this.background;
     }
 
@@ -382,6 +384,7 @@ function createShaderMaterial(fragmentShader, uniforms) {
         vertexShader: getPassThroughVertexShader(),
         fragmentShader,
     });
+    
     return material;
 }
 
