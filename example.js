@@ -1,14 +1,14 @@
-import { WebGLRenderer, PerspectiveCamera, Scene, BoxGeometry, ShaderMaterial, Mesh, Vector2, Vector3 } from 'three'
-import { resolveLygia } from 'resolve-lygia'
+import { WebGLRenderer, PerspectiveCamera, Scene, BoxGeometry, ShaderMaterial, Mesh, Vector2, Vector3 } from 'three';
+import { resolveLygia } from 'resolve-lygia';
 
-import { GlslSandbox }  from './index.js'
+import { GlslSandbox } from './index.js';
 
 let W = window,
     D = document;
 
 let width = W.innerWidth;
 let height = W.innerHeight;
-let pixelRatio = W.devicePixelRatio
+let pixelRatio = W.devicePixelRatio;
 
 const renderer = new WebGLRenderer();
 renderer.setPixelRatio(pixelRatio);
@@ -122,7 +122,7 @@ void main() {
 `);
 
 const uniforms = {
-    u_camera: { type: "v3", value: new Vector3() },
+    u_camera: { value: new Vector3() },
 };
 
 // GLSL Buffers
@@ -133,11 +133,11 @@ glsl_sandbox.load(shader_frag);
 const material = new ShaderMaterial({
     vertexShader: shader_vert,
     fragmentShader: shader_frag,
-    uniforms: uniforms,
+    uniforms,
 });
 material.defines = glsl_sandbox.defines;
 
-const mesh = new Mesh(new BoxGeometry( 1, 1, 1 ), material);
+const mesh = new Mesh(new BoxGeometry(1, 1, 1), material);
 const scene = new Scene();
 const cam = new PerspectiveCamera(45, width / height, 0.001, 200);
 cam.position.z = 3;
@@ -149,7 +149,7 @@ const draw = () => {
     // // 2D main shader
     // glsl_sandbox.renderMain();
 
-    // 3D Scense
+    // 3D Scene
     glsl_sandbox.renderScene(scene, cam);
 
     requestAnimationFrame(draw);
@@ -166,7 +166,7 @@ const resize = () => {
     glsl_sandbox.setSize(width, height);
 
     material.uniforms.u_resolution.value = new Vector2(width, height);
-    
+
     cam.aspect = width / height;
     cam.updateProjectionMatrix();
     draw();
