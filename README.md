@@ -1,6 +1,12 @@
-# glsl-sandbox
+# GlslSandbox 🖌📦
 
 [![stable](http://badges.github.io/stability-badges/dist/stable.svg)](http://github.com/badges/stability-badges)
+
+GlslSandbox is a module that brings the workflow of [glslViewer](https://github.com/patriciogonzalezvivo/glslViewer) for handling multiple buffers. It follows the premise of branching the code in a shader by using `#define` flags. Currently it supports defines for `BUFFERS`, `DOUBLE_BUFFERS`, `BACKGROUND` and `POSTPROCESSING`. For more information on this workflow, please read glslViewer's [wiki](https://github.com/patriciogonzalezvivo/glslViewer/wiki)
+
+It works with [three.js](https://github.com/mrdoob/three.js) at the moment, but the logic can be used in many other graphics environments.
+
+
 
 ## Install
 
