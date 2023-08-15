@@ -29,7 +29,6 @@ class GlslSandbox {
         this.uniforms.u_delta = { value: 0.0 };
         this.uniforms.u_time = { value: 0.0 };
         this.uniforms.u_frame = { value: 0 };
-        this.currentTextureIndex = 0;
 
         this.buffers = [];
         this.doubleBuffers = [];
@@ -241,8 +240,8 @@ class GlslSandbox {
         }
 
         // Double buffers
-        let currentTextureIndex = this.currentTextureIndex;
-        let nextTextureIndex = this.currentTextureIndex === 0 ? 1 : 0;
+        let currentTextureIndex = this.frame % 2;
+        let nextTextureIndex = (this.frame+1) % 2;
         for (let i = 0, il = this.doubleBuffers.length;i < il;i++) {
             let db = this.doubleBuffers[i];
             if (db.width <= 1.0 && db.height <= 1.0)
@@ -253,10 +252,9 @@ class GlslSandbox {
             this.uniforms[db.name].value = db.renderTargets[currentTextureIndex].texture;
 
             this.renderTarget(db.material, db.renderTargets[nextTextureIndex]);
-            this.uniforms[db.name].value = db.renderTargets[nextTextureIndex].texture;
+            // this.uniforms[db.name].value = db.renderTargets[nextTextureIndex].texture;
         }
 
-        this.currentTextureIndex = nextTextureIndex;
         this.renderer.setRenderTarget(null);
     }
 
@@ -279,7 +277,7 @@ class GlslSandbox {
         if (index >= this.doubleBuffers.length)
             return;
 
-        return this.doubleBuffers[index].renderTargets[this.currentTextureIndex].texture;
+        return this.doubleBuffers[index].renderTargets[this.frame % 2].texture;
     }
 
     renderBuffer(index) {
@@ -379,6 +377,8 @@ class GlslSandbox {
                 db.renderTargets[1].setSize(w, h);
             }
         }
+
+        this.frame = 0;
     }
 }
 
