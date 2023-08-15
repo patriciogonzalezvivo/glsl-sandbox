@@ -165,11 +165,8 @@ const resize = () => {
 
     glsl_sandbox.setSize(width, height);
 
-    material.uniforms.u_resolution.value = new Vector2(width, height);
-
     cam.aspect = width / height;
     cam.updateProjectionMatrix();
-    draw();
 };
 
 W.addEventListener("resize", resize);
