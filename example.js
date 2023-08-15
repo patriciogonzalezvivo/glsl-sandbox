@@ -144,8 +144,6 @@ cam.position.z = 3;
 scene.add(mesh);
 
 const draw = () => {
-    uniforms.u_camera.value = cam.position;
-
     // // 2D main shader
     // glsl_sandbox.renderMain();
 
