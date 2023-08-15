@@ -22,7 +22,6 @@ class GlslSandbox {
             throw new Error("No OES_texture_float support for float textures.");
 
         this.renderer = renderer;
-        this.pixelRatio = Math.max(renderer.getPixelRatio(), 2);
 
         this.defines = {};
         this.uniforms = uniforms;
@@ -321,6 +320,7 @@ class GlslSandbox {
         this.updateBuffers();
 
         this.uniforms["u_resolution"].value = this.resolution;
+        this.uniforms["u_camera"].value = camera.position;
 
         if (this.sceneBuffer) {
             this.renderer.setRenderTarget(this.sceneBuffer.renderTarget);
@@ -351,8 +351,8 @@ class GlslSandbox {
     }
 
     setSize(width, height) {
-        width *= this.pixelRatio;
-        height *= this.pixelRatio;
+        width *= window.devicePixelRatio;
+        height *= window.devicePixelRatio;
 
         if (this.sceneBuffer) {
             this.sceneBuffer.width = width;
