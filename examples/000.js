@@ -99,32 +99,18 @@ void main() {
 }
 `);
 
-const uniforms = {
-    u_camera: { value: new Vector3() },
-};
-
 // GLSL Buffers
-const glsl_sandbox = new GlslSandbox(renderer, uniforms);
-glsl_sandbox.load(shader_frag);
+const glsl_sandbox = new GlslSandbox(renderer);
+glsl_sandbox.load(shader_frag, shader_vert);
 
-// SPHERE
-const material = new ShaderMaterial({
-    vertexShader: shader_vert,
-    fragmentShader: shader_frag,
-    uniforms,
-});
-material.defines = glsl_sandbox.defines;
-
-const mesh = new Mesh(new BoxGeometry(1, 1, 1), material);
+const mesh = new Mesh(new BoxGeometry(1, 1, 1), glsl_sandbox.main);
 const scene = new Scene();
 const cam = new PerspectiveCamera(45, width / height, 0.001, 200);
 cam.position.z = 3;
 scene.add(mesh);
 
 const draw = () => {
-    // 3D Scene
     glsl_sandbox.renderScene(scene, cam);
-
     requestAnimationFrame(draw);
 };
 
