@@ -1,4 +1,6 @@
 import { WebGLRenderer, PerspectiveCamera, Scene, BoxGeometry, ShaderMaterial, Mesh, Vector2, Vector3 } from 'three';
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+
 import { resolveLygia } from 'resolve-lygia';
 
 import { GlslSandbox } from './index.js';
@@ -36,6 +38,7 @@ void main(void) {
                 rotate4dX(PI*0.2) * 
                 rotate4dZ(PI*0.25);
 
+                
     v_position = rot * v_position;
 
     v_normal = normalize( (rot * vec4(normal,1.0)).xyz );
@@ -141,6 +144,8 @@ const scene = new Scene();
 const cam = new PerspectiveCamera(45, width / height, 0.001, 200);
 cam.position.z = 3;
 scene.add(mesh);
+const controls = new OrbitControls(cam, renderer.domElement);
+controls.update();
 
 const draw = () => {
     // // 2D main shader
