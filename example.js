@@ -1,4 +1,6 @@
 import { WebGLRenderer, PerspectiveCamera, Scene, BoxGeometry, ShaderMaterial, Mesh, Vector2, Vector3 } from 'three';
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+
 import { resolveLygia } from 'resolve-lygia';
 
 import { GlslSandbox } from './index.js';
@@ -16,9 +18,9 @@ renderer.setSize(width, height);
 D.body.appendChild(renderer.domElement);
 
 const shader_vert = resolveLygia(/* glsl */`
-#define PLATFORM_WEBGL
-
 uniform float   u_time;
+
+uniform float       u_speed;
 
 varying vec2    v_texcoord;
 varying vec3    v_normal;
@@ -32,10 +34,11 @@ varying vec4    v_position;
 void main(void) {
     v_position = vec4(position, 1.0);
 
-    mat4 rot =  rotate4dY(u_time * 0.5) *
+    mat4 rot =  rotate4dY(u_time * u_speed) *
                 rotate4dX(PI*0.2) * 
                 rotate4dZ(PI*0.25);
 
+                
     v_position = rot * v_position;
 
     v_normal = normalize( (rot * vec4(normal,1.0)).xyz );
@@ -46,8 +49,6 @@ void main(void) {
 `);
 
 const shader_frag = resolveLygia(/* glsl */`
-#define PLATFORM_WEBGL
-
 uniform sampler2D   u_scene;
 uniform sampler2D   u_doubleBuffer0; // 512x512
 uniform sampler2D   u_doubleBuffer1; // 1.0x1.0
@@ -56,6 +57,8 @@ uniform vec3        u_camera;
 uniform vec2        u_resolution;
 uniform float       u_time;
 uniform int         u_frame;
+
+uniform float       u_speed;
 
 varying vec2        v_texcoord;
 varying vec4        v_position;
@@ -75,7 +78,7 @@ void main() {
     // This renders the background of the 3D scene
 
     st = ratio(st, u_resolution);
-    st += vec2(cos(u_time * 0.5), sin(u_time * 0.2)) * 0.5;
+    st += vec2(cos(u_time * u_speed), sin(u_time * 0.2)) * 0.5;
     color.rgb += hue( fract(u_time * 0.1) ) * circle(st, 0.025);
 
 #elif defined(DOUBLE_BUFFER_0)
@@ -122,26 +125,27 @@ void main() {
 `);
 
 const uniforms = {
-    u_camera: { value: new Vector3() },
+    u_speed: { value: 0.5 },
 };
 
 // GLSL Buffers
 const glsl_sandbox = new GlslSandbox(renderer, uniforms);
-glsl_sandbox.load(shader_frag);
+glsl_sandbox.load(shader_frag, shader_vert);
 
-// SPHERE
+// 3D Scene
 const material = new ShaderMaterial({
     vertexShader: shader_vert,
     fragmentShader: shader_frag,
+    defines: glsl_sandbox.defines,
     uniforms,
 });
-material.defines = glsl_sandbox.defines;
-
 const mesh = new Mesh(new BoxGeometry(1, 1, 1), material);
 const scene = new Scene();
 const cam = new PerspectiveCamera(45, width / height, 0.001, 200);
 cam.position.z = 3;
 scene.add(mesh);
+const controls = new OrbitControls(cam, renderer.domElement);
+controls.update();
 
 const draw = () => {
     // // 2D main shader
