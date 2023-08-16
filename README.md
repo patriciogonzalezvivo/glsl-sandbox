@@ -17,37 +17,49 @@ npm install glsl-sandbox --save
 ## Usage
 ```js
 import { WebGLRenderer, PerspectiveCamera, Vector3 } from 'three';
+import { resolveLygia } from 'resolve-lygia';
 import { GlslSandbox } from 'glsl-sandbox';
 
 const renderer = new WebGLRenderer();
 const camera = new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 100);
 
-const fragmentShader = `
+const fragmentShader = resolveLygia(`
 #define PLATFORM_WEBGL
 
 uniform sampler2D   u_scene;
 
 uniform vec2        u_resolution;
 
+varying vec2        v_texcoord;
+
+#include "lygia/distort/chromaAB.glsl"
+
 void main() {
     vec4 color = vec4(vec3(0.0), 1.0);
     vec2 pixel = 1.0 / u_resolution;
     vec2 st = gl_FragCoord.xy * pixel;
+    vec2 uv = v_texcoord;
 
 #if defined(BACKGROUND)
-    // This will render a red background behind the 3D
+    // Optional fullscreen quad rendered behind the 3D scene
+    // It will color the background in red
     color.r = 1.0;
 
 #elif defined(POSTPROCESSING)
-    // Postprocessing pass,
-    // displays the scene directly to the screen
-    color = texture2D(u_scene, st);
+    // Postprocessing pass, applies chromatic aberration
+    // and displays the scene directly to the screen
+    color = chromaAB(u_scene, st);
+
+#else
+    // Main shade if it's rendered as a 2D scene
+    // and the shape's surface when rendered a 3D scene 
+    color = texture2D(u_scene, uv);
 
 #endif
 
     gl_FragColor = color;
 }
-`;
+`);
 
 const sandbox = new GlslSandbox(renderer, {
     // Optional uniforms object to pass to the shader
