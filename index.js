@@ -24,7 +24,7 @@ class GlslSandbox {
 
         this.renderer = renderer;
 
-        this.defines = {};
+        this.defines = { 'PLATFORM_WEBGL': '1' };
         this.uniforms = uniforms;
         this.uniforms.u_camera = { value: new Vector3() };
         this.uniforms.u_resolution = { value: new Vector2() };

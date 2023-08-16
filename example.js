@@ -16,8 +16,6 @@ renderer.setSize(width, height);
 D.body.appendChild(renderer.domElement);
 
 const shader_vert = resolveLygia(/* glsl */`
-#define PLATFORM_WEBGL
-
 uniform float   u_time;
 
 varying vec2    v_texcoord;
@@ -46,8 +44,6 @@ void main(void) {
 `);
 
 const shader_frag = resolveLygia(/* glsl */`
-#define PLATFORM_WEBGL
-
 uniform sampler2D   u_scene;
 uniform sampler2D   u_doubleBuffer0; // 512x512
 uniform sampler2D   u_doubleBuffer1; // 1.0x1.0

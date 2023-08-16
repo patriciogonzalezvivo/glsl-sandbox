@@ -16,8 +16,6 @@ renderer.setSize(width, height);
 D.body.appendChild(renderer.domElement);
 
 const shader_frag = resolveLygia(/* glsl */`
-#define PLATFORM_WEBGL
-
 uniform sampler2D   u_doubleBuffer0;
 
 uniform vec2        u_resolution;
