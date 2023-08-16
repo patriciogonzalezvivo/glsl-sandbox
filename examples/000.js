@@ -32,9 +32,11 @@ varying vec4    v_position;
 void main(void) {
     v_position = vec4(position, 1.0);
 
-    mat4 rot =  rotate4dY(u_time * 0.5) *
-                rotate4dX(u_time * 0.3) * 
-                rotate4dZ(u_time * 0.2);
+    float time = u_time * 5.0;
+
+    mat4 rot =  rotate4dY(time * 0.5) *
+                rotate4dX(time * 0.3) * 
+                rotate4dZ(time * 0.2);
 
     v_position = rot * v_position;
 
@@ -59,32 +61,37 @@ varying vec2        v_texcoord;
 varying vec3        v_normal;
 varying vec4        v_position;
 
+#include "lygia/math/saturate.glsl"
+#include "lygia/space/ratio.glsl"
 #include "lygia/space/scale.glsl"
+#include "lygia/color/mixOklab.glsl"
+#include "lygia/generative/snoise.glsl"
 
 void main() {
     vec4 color = vec4(vec3(0.0), 1.0);
     vec2 pixel = 1.0 / u_resolution;
     vec2 st = gl_FragCoord.xy * pixel;
+    vec2 sst = ratio(st, u_resolution); 
     vec2 uv = v_texcoord;
 
 #if defined(BACKGROUND)
-    // Make sure the background is ALPHA ZERO
     color.a = 0.0;
 
 #elif defined(DOUBLE_BUFFER_0)
-    // Scale previous frame
-    color.rgb = texture2D(u_doubleBuffer0, scale(st, 0.995)).rgb;
+    float n = snoise( vec3(sst * (1.5 + sin(u_time)) * 5.0, u_time * 0.5) ) * 0.0025;
+    vec2 st0 = scale(st, 0.995 + n);
+    color = texture2D(u_doubleBuffer0, st0);
 
-    // Incorporate scene pixels only where alpha is not zero (where the geometry is)
     vec4 scene = texture2D(u_scene, st);
-    color.rgb = mix(color.rgb, scene.rgb, scene.a);
+    color.rgb = mixOklab(color.rgb, scene.rgb, step(0.99,scene.a));
+    color.a = 1.0;
 
 #elif defined(POSTPROCESSING)
     color = texture2D(u_doubleBuffer0, st);
 
 #else
-    // Render normals as colors
     color.rgb = v_normal * 0.5 + 0.5;
+    color.rg = mix(color.rg, uv, saturate(distance(sst, vec2(0.5))*2. ) );
 
 #endif
 

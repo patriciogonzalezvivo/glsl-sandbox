@@ -6,6 +6,7 @@ import {
     ShaderMaterial,
     Mesh,
     Clock,
+    Vector3,
     Vector2,
     LinearFilter,
     RepeatWrapping,
@@ -25,7 +26,9 @@ class GlslSandbox {
 
         this.defines = {};
         this.uniforms = uniforms;
+        this.uniforms.u_camera = { value: new Vector3() };
         this.uniforms.u_resolution = { value: new Vector2() };
+        this.uniforms.u_mouse = { value: new Vector2() };
         this.uniforms.u_delta = { value: 0.0 };
         this.uniforms.u_time = { value: 0.0 };
         this.uniforms.u_frame = { value: 0 };
@@ -41,7 +44,7 @@ class GlslSandbox {
         this.billboard_camera = new Camera();
         this.billboard_camera.position.z = 1;
         this.passThruUniforms = { texture: { value: null } };
-        this.passThruShader = createShaderMaterial(getPassThroughFragmentShader(), this.passThruUniforms);
+        this.passThruShader = createShaderMaterial(this.passThruUniforms, getPassThroughFragmentShader());
 
         this.mesh = new Mesh(new PlaneGeometry(2, 2), this.passThruShader);
         this.billboard_scene.add(this.mesh);
@@ -51,6 +54,14 @@ class GlslSandbox {
         this.lastTime = 0.0;
         this.time = 0.0;
         this.resolution = new Vector2(renderer.domElement.width, renderer.domElement.height);
+
+        document.addEventListener('mousemove', (e) => {
+            let rect = renderer.domElement.getBoundingClientRect();
+            let x = (e.clientX || e.pageX);
+            let y = (e.clientY || e.pageY);
+            this.uniforms.u_mouse.value.x = (x - rect.left) * window.devicePixelRatio;
+            this.uniforms.u_mouse.value.y = (renderer.domElement.height - (y - rect.top) * window.devicePixelRatio);
+        }, false);
     }
 
     getBufferSize(frag_src, name) {
@@ -71,7 +82,7 @@ class GlslSandbox {
         return { width: 1.0, height: 1.0 };
     }
 
-    load(frag_src) {
+    load(frag_src,  vert_src = null) {
         const found_background = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*BACKGROUND)(?:\s*\))|(?:#ifdef)(?:\s*BACKGROUND)(?:\s*))/gm);
         if (found_background) {
             this.renderer.autoClearColor = false;
@@ -95,7 +106,7 @@ class GlslSandbox {
             }
         }
 
-        this.main = createShaderMaterial(frag_src, this.uniforms);
+        this.main = createShaderMaterial(this.uniforms, frag_src, vert_src);
 
         const found_postprocessing = frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*POSTPROCESSING)(?:\s*\))|(?:#ifdef)(?:\s*POSTPROCESSING)(?:\s*))/gm);
         if (found_postprocessing)
@@ -103,7 +114,7 @@ class GlslSandbox {
     }
 
     addBackground(frag_src) {
-        this.background = createShaderMaterial(`#define BACKGROUND\n${frag_src}`, this.uniforms);
+        this.background = createShaderMaterial(this.uniforms, `#define BACKGROUND\n${frag_src}`);
         this.background.defines = this.defines;
 
         return this.background;
@@ -111,7 +122,7 @@ class GlslSandbox {
 
     addBuffer(frag_src, width, height) {
         let index = this.buffers.length;
-        let material = createShaderMaterial(`#define BUFFER_${index}\n${frag_src}`, this.uniforms);
+        let material = createShaderMaterial(this.uniforms, `#define BUFFER_${index}\n${frag_src}`);
         material.defines = this.defines;
         let b = {
             name: `u_buffer${index}`,
@@ -135,7 +146,7 @@ class GlslSandbox {
 
     addDoubleBuffer(frag_src, width, height) {
         let index = this.doubleBuffers.length;
-        let material = createShaderMaterial(`#define DOUBLE_BUFFER_${index}\n${frag_src}`, this.uniforms);
+        let material = createShaderMaterial(this.uniforms, `#define DOUBLE_BUFFER_${index}\n${frag_src}`);
         material.defines = this.defines;
         let db = {
             name: `u_doubleBuffer${index}`,
@@ -159,7 +170,7 @@ class GlslSandbox {
     }
 
     addPostprocessing(frag_src) {
-        this.postprocessing = createShaderMaterial(`#define POSTPROCESSING\n${frag_src}`, this.uniforms);
+        this.postprocessing = createShaderMaterial(this.uniforms, `#define POSTPROCESSING\n${frag_src}`);
         this.postprocessing.defines = this.defines;
 
         this.sceneBuffer = {
@@ -343,7 +354,7 @@ class GlslSandbox {
     renderTarget(material, output) {
         this.mesh.material = material;
         this.renderer.setRenderTarget(output);
-        this.renderer.clear();
+        // this.renderer.clear();
         this.renderer.render(this.billboard_scene, this.billboard_camera, output);
         this.mesh.material = this.passThruShader;
     }
@@ -382,10 +393,10 @@ class GlslSandbox {
     }
 }
 
-function createShaderMaterial(fragmentShader, uniforms) {
+function createShaderMaterial(uniforms, fragmentShader, vertexShader) {
     let material = new ShaderMaterial({
         uniforms: uniforms === undefined ? {} : uniforms,
-        vertexShader: getPassThroughVertexShader(),
+        vertexShader: vertexShader || getPassThroughVertexShader(),
         fragmentShader,
     });
 
