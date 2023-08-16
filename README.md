@@ -68,7 +68,7 @@ const resize = () => {
     sandbox.setSize(window.innerWidth, window.innerHeight);
 };
 
-W.addEventListener("resize", resize);
+window.addEventListener("resize", resize);
 resize();
 
 draw();
