@@ -18,6 +18,8 @@ D.body.appendChild(renderer.domElement);
 const shader_vert = resolveLygia(/* glsl */`
 uniform float   u_time;
 
+uniform float       u_speed;
+
 varying vec2    v_texcoord;
 varying vec3    v_normal;
 varying vec4    v_position;
@@ -30,7 +32,7 @@ varying vec4    v_position;
 void main(void) {
     v_position = vec4(position, 1.0);
 
-    mat4 rot =  rotate4dY(u_time * 0.5) *
+    mat4 rot =  rotate4dY(u_time * u_speed) *
                 rotate4dX(PI*0.2) * 
                 rotate4dZ(PI*0.25);
 
@@ -53,6 +55,8 @@ uniform vec2        u_resolution;
 uniform float       u_time;
 uniform int         u_frame;
 
+uniform float       u_speed;
+
 varying vec2        v_texcoord;
 varying vec4        v_position;
 
@@ -71,7 +75,7 @@ void main() {
     // This renders the background of the 3D scene
 
     st = ratio(st, u_resolution);
-    st += vec2(cos(u_time * 0.5), sin(u_time * 0.2)) * 0.5;
+    st += vec2(cos(u_time * u_speed), sin(u_time * 0.2)) * 0.5;
     color.rgb += hue( fract(u_time * 0.1) ) * circle(st, 0.025);
 
 #elif defined(DOUBLE_BUFFER_0)
