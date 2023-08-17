@@ -2,82 +2,39 @@
 
 [![stable](http://badges.github.io/stability-badges/dist/stable.svg)](http://github.com/badges/stability-badges)
 
-GlslSandbox is a module that brings the workflow of [glslViewer](https://github.com/patriciogonzalezvivo/glslViewer) for handling multiple buffers. It follows the premise of branching the code in a shader by using `#define` flags. Currently it supports defines for `BUFFERS`, `DOUBLE_BUFFERS`, `BACKGROUND` and `POSTPROCESSING`. For more information on this workflow, please read glslViewer's [wiki](https://github.com/patriciogonzalezvivo/glslViewer/wiki)
+GlslSandbox is a class that allows quickly prototyping of pipelines directly from a single shader by branching it into different special stages using `#if`, `#elif`, `#else`, define flags. It also allows you to handle multiple buffers and postprocessing passes using keywords (defines) such as `BUFFERS`, `DOUBLE_BUFFERS`, `BACKGROUND` and `POSTPROCESSING`.
 
-It works with [three.js](https://github.com/mrdoob/three.js) at the moment, but the logic can be used in many other graphics environments.
+GlslSandbox also handle some basic uniforms such as `u_resolution`, `u_mouse`, `u_time`, `u_delta` and `u_frame`.
+
+All this specs are based 100% in [glslViewer](https://github.com/patriciogonzalezvivo/glslViewer/wiki) workflow, and is designed so you can start your prototypes there and then port them to WebGL using [ThreeJS](https://github.com/mrdoob/three.js) in few seconds by just loading your shader code in GlslSandbox. 
 
 
+## Install, load and run your shader
 
-## Install
+Through your terminal **install** the package:
 
 ```sh
 npm install glsl-sandbox --save
 ```
 
-## Usage
+If you are not using geometry you just create a new instance of GlslSandbox load your shader and start rendering it:
+
 ```js
 import { WebGLRenderer, PerspectiveCamera, Vector3 } from 'three';
-import { resolveLygia } from 'resolve-lygia';
 import { GlslSandbox } from 'glsl-sandbox';
 
 const renderer = new WebGLRenderer();
-const camera = new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 100);
-
-const fragmentShader = resolveLygia(`
-uniform float       u_time;
-
-uniform sampler2D   u_scene;
-uniform sampler2D   u_buffer0;
-
-uniform vec2        u_resolution;
-
-varying vec2        v_texcoord;
-
-#include "lygia/distort/chromaAB.glsl"
-
-void main() {
-    vec4 color = vec4(vec3(0.0), 1.0);
-    vec2 pixel = 1.0 / u_resolution;
-    vec2 st = gl_FragCoord.xy * pixel;
-    vec2 uv = v_texcoord;
-
-#if defined(BACKGROUND)
-    // Optional fullscreen quad rendered behind the 3D scene
-    // Adds b&w gradients to the background
-    color.rgb += fract((st.x + st.y) * 10.0 + u_time);
-
-#elif defined(BUFFER_0)    
-    st.x += cos(st.y * 100.0) * 0.0015;
-    color.rgb = texture2D(u_scene, st).rgb;
-
-#elif defined(POSTPROCESSING)
-    // Postprocessing pass, applies chromatic aberration
-    // and displays the scene directly to the screen
-    color.rgb = chromaAB(u_buffer0, st);
-
-#else
-    // Main shade if it's rendered as a 2D scene
-    // and the shape's surface when rendered a 3D scene 
-    color = texture2D(u_buffer0, uv);
-
-#endif
-
-    gl_FragColor = color;
-}
-`);
-
 const sandbox = new GlslSandbox(renderer, {
     // Optional uniforms object to pass to the shader
-    u_camera: { value: new Vector3() },
+    u_color: { value: new Vector3(1.0, 0.0, 0.0) },
+    u_speed: { value: 0.5 },
+    ...
 });
 
-sandbox.load(fragmentShader);
+sandbox.load(fragment_shader);
 
 const draw = () => {
-    // Renders the 3D Scene, to render
-    // a 2D main shader use sandbox.renderMain();
-    sandbox.renderScene(scene, camera);
-
+    sandbox.renderMain();
     requestAnimationFrame(draw);
 };
 
@@ -91,7 +48,214 @@ resize();
 draw();
 ```
 
-## Demo
+If you want to use geometry you will need to create a scene and a camera, provide a vertex and fragment shader and then render the scene using `renderScene` method;
+
+
+```js
+import { WebGLRenderer, PerspectiveCamera, Vector3 } from 'three';
+import { GlslSandbox } from 'glsl-sandbox';
+
+const renderer = new WebGLRenderer();
+const glsl_sandbox = new GlslSandbox(renderer, {
+    // Optional uniforms object to pass to the shader
+    u_color: { value: new Vector3(1.0, 0.0, 0.0) },
+    u_speed: { value: 0.5 },
+    ...
+});
+glsl_sandbox.load(shader_frag, shader_vert);
+
+// Create your scene and use the main material shader
+const camera = new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 100);
+const mesh = new Mesh(new BoxGeometry(1, 1, 1), glsl_sandbox.main);
+const scene = new Scene();
+scene.add(mesh);
+
+const draw = () => {
+    glsl_sandbox.renderScene(scene, cam);
+    requestAnimationFrame(draw);
+};
+
+const resize = () => {
+    sandbox.setSize(window.innerWidth, window.innerHeight);
+};
+
+window.addEventListener("resize", resize);
+resize();
+
+draw();
+```
+
+## PIPELINE STAGES
+
+Before getting into the different stages is important to understand that we are using `#if`, `#elif`, `#else` and `#endif`  directives to branch a single shader into multiple. This are pre-compilation macros that are evaluated before the shader is compiled. This means that the shader code will be different depending on the defines that are active at the moment of compiling it. This avoid realtime logic branching and allow us to create a pipeline of stages that will be executed in a specific order, with very little performance overhead.
+
+![](https://github.com/patriciogonzalezvivo/glslViewer/raw/main/.github/images/buffers.gif)
+
+GlslSandbox will detect the use of the following keywords to define the different stages of the pipeline: `BUFFER_<N>`, `DOUBLE_BUFFER_<N>`, `BACKGROUND` and `POSTPROCESSING`, and will create new render passes for each one of them (except `BACKGROUND` which just render a billboard on your scene). Each one will use the same shader code but "injecting" this keywords at the top of it, so it's behaviour will "activate" different parts of the code. That's what we call forking the shader. 
+
+In the particular case of `BUFFERS` and `DOUBLE_BUFFERS` it will also create a new render target for each one of them. All `BUFFER_X` will be rendered first into textures with the name `u_bufferX` (where `X` is the index number) and then all `DOUBLE_BUFFER_X` will be rendered into the `u_doubleBufferX` textures.
+
+In 3D scenes, when `POSTPROCESSING` is used, the geometry wiil be render into a framebuffer associated to the `u_scene` texture so you can then in the postprocessing pass that happens at the end of the pipeline.
+
+
+### BACKGROUND (3D scene stage)
+
+![](https://user-images.githubusercontent.com/346914/198333499-abdbd9ac-dd78-4602-be8b-8636c32651c9.svg)
+
+This stage is used to render the background of the scene. It is only available when using the `renderScene` method. It is defined by using the `BACKGROUND` keyword.
+
+```glsl
+uniform vec2    u_resolution;
+
+varying vec4    v_position;
+varying vec3    v_normal;
+
+void main(void) {
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+    vec2 pixel = 1.0/u_resolution;
+    vec2 st = gl_FragCoord.xy * pixel;
+
+    #if defined(BACKGROUND)
+
+    // Draw a ciruclar gradient background
+    float dist = distance(st, vec2(0.5));
+    color.rgb += 1.0-dist;
+
+    #else
+
+    // Basic diffuse shading from directional light
+    vec3 N = normalize(v_normal);
+    vec3 L = vec3(1.0, 1.0, 0.0);
+    vec3 Ld = normalize(L - v_position.xyz);
+    color.rgb += dot(N, Ld) * 0.5 + 0.5;
+    
+    #endif
+
+    gl_FragColor = color;
+}
+```
+
+### POSTPROCESSING (3D scene stage)
+
+![](https://user-images.githubusercontent.com/346914/198334417-48758f24-4e63-4732-8529-bf0e3dae0050.svg)
+
+This stage is used to render the postprocessing effects of the scene. It is only available when using the `renderScene` method. It is defined by using the `POSTPROCESSING` keyword.
+
+It's important to notice that at this stage the 3D scene have been already rendered into a framebuffer and is available as `u_scene` texture uniform.
+
+```glsl
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform sampler2D   u_scene;
+
+uniform vec2        u_resolution;
+
+varying vec4        v_position;
+varying vec3        v_normal;
+
+void main(void) {
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+    vec2 pixel = 1.0/u_resolution;
+    vec2 st = gl_FragCoord.xy * pixel;
+
+    #if defined(POSTPROCESSING)
+
+    // Render the scene with a circular RGB shift
+    float dist = distance(st, vec2(0.5)) * 2.0;
+    color.r = texture2D(u_scene, st + pixel * dist).r;
+    color.g = texture2D(u_scene, st).g;
+    color.b = texture2D(u_scene, st - pixel * dist).b;
+
+    #else
+
+    // Basic diffuse shading from directional light
+    vec3 N = normalize(v_normal);
+    vec3 L = vec3(1.0, 1.0, 0.0);
+    vec3 Ld = normalize(L - v_position.xyz);
+    color.rgb += dot(N, Ld) * 0.5 + 0.5;
+
+    #endif
+
+    gl_FragColor = color;
+}
+```
+
+### BUFFERs 
+
+![](https://user-images.githubusercontent.com/346914/198334848-42a4f4ba-cf5e-4fb5-a017-da18c0b8dc6b.svg)
+
+Buffers are used to render something on an offscreen render pass. They are defined by using the keyword `BUFFER_` follow by the index number. The content of that pass will be available as a texture uniform named `u_buffer` follow by the same index number.
+
+This kind of buffers are useful for example for creating blurs that require two passes (one horizontal and one vertical).
+
+```glsl
+
+uniform vec2        u_resolution;
+
+uniform sampler2D   u_buffer0;
+uniform sampler2D   u_tex0;
+
+#include "lygia/filter/gaussianBlur.glsl"
+
+void main (void) {
+    vec3 color = vec3(0.0);
+    vec2 pixel = 1.0/u_resolution;
+    vec2 st = gl_FragCoord.xy * pixel;
+
+#ifdef BUFFER_0
+    color = gaussianBlur(u_tex0, st, pixel * vec2(1.0, 0.0), 5).rgb;
+
+#else
+    color = gaussianBlur(u_buffer0, st, pixel * vec2(0.0, 1.0), 5).rgb;
+
+#endif
+
+    gl_FragColor = vec4(color,1.0);
+}
+```
+
+### DOUBLE BUFFERs
+
+![](https://user-images.githubusercontent.com/346914/198334801-76edcf24-519b-4b50-8bdf-4e3f01d42ccd.svg)
+
+Double buffers are used to render something on an offscreen render pass, by alternating a single pair of frame buffers. This allows to use the output of one pass as the input of the following. They are defined by using the keyword `DOUBLE_BUFFER_` follow by the index number and the content of that pass will be available as a texture uniform named `u_doubleBuffer` follow by the same index number.
+
+This particular technique allows you to preserve the content of the previous frame and use it as an input for the next one. This particular technique is useful for example for creating all sort of interesting techniques like motion blur, trails, simulations, etc.
+
+```glsl
+uniform sampler2D   u_doubleBuffer0;
+
+uniform vec2        u_resolution;
+uniform float       u_time;
+
+#include "lygia/space/ratio.glsl"
+#include "lygia/color/palette/hue.glsl"
+#include "lygia/draw/circle.glsl"
+
+void main() {
+    vec3 color = vec3(0.0);
+    vec2 pixel = 1.0/u_resolution.xy;
+    vec2 st = gl_FragCoord.xy * pixel;
+
+#ifdef DOUBLE_BUFFER_0
+    color = texture2D(u_doubleBuffer0, st).rgb * 0.998;
+
+    vec2 sst = ratio(st, u_resolution);
+    sst.xy += vec2(cos(u_time * 2.0), sin(u_time * 1.7)) * 0.35;
+    color.rgb += hue(fract(u_time * 0.1)) * circle(sst, 0.1) * 0.05;
+
+#else
+    color += texture2D(u_doubleBuffer0, st).rgb;
+
+#endif
+
+    gl_FragColor = vec4(color, 1.0);
+}
+```
+
+## Examples
 
 To build/run from source, first `git clone` this repo 
 
@@ -114,6 +278,15 @@ npm run dev
 # to run demo build scripts
 npm run build
 ```
+
+Then locally, open the following links with your browser:
+
+http://localhost:5173
+http://localhost:5173/examples/2d_trails.html
+http://localhost:5173/examples/2d_ripples.html
+http://localhost:5173/examples/2d_reaction_diffusion.html
+http://localhost:5173/examples/3d_scene_pingpong.html
+
 
 ## License
 

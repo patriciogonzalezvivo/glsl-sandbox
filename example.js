@@ -1,4 +1,4 @@
-import { WebGLRenderer, PerspectiveCamera, Scene, BoxGeometry, ShaderMaterial, Mesh, Vector2, Vector3 } from 'three';
+import { WebGLRenderer, PerspectiveCamera, Scene, BoxGeometry, ShaderMaterial, Mesh } from 'three';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 import { resolveLygia } from 'resolve-lygia';
