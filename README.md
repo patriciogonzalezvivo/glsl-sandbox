@@ -24,9 +24,10 @@ const renderer = new WebGLRenderer();
 const camera = new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 100);
 
 const fragmentShader = resolveLygia(`
-#define PLATFORM_WEBGL
+uniform float       u_time;
 
 uniform sampler2D   u_scene;
+uniform sampler2D   u_buffer0;
 
 uniform vec2        u_resolution;
 
@@ -42,18 +43,22 @@ void main() {
 
 #if defined(BACKGROUND)
     // Optional fullscreen quad rendered behind the 3D scene
-    // It will color the background in red
-    color.r = 1.0;
+    // Adds b&w gradients to the background
+    color.rgb += fract((st.x + st.y) * 10.0 + u_time);
+
+#elif defined(BUFFER_0)    
+    st.x += cos(st.y * 100.0) * 0.0015;
+    color.rgb = texture2D(u_scene, st).rgb;
 
 #elif defined(POSTPROCESSING)
     // Postprocessing pass, applies chromatic aberration
     // and displays the scene directly to the screen
-    color = chromaAB(u_scene, st);
+    color.rgb = chromaAB(u_buffer0, st);
 
 #else
     // Main shade if it's rendered as a 2D scene
     // and the shape's surface when rendered a 3D scene 
-    color = texture2D(u_scene, uv);
+    color = texture2D(u_buffer0, uv);
 
 #endif
 
