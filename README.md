@@ -2,12 +2,11 @@
 
 [![stable](http://badges.github.io/stability-badges/dist/stable.svg)](http://github.com/badges/stability-badges)
 
-GlslSandbox is a class that allows quickly prototyping of pipelines directly from a single shader by branching it into different special stages using `#if`, `#elif`, `#else`, define flags. It also allows you to handle multiple buffers and postprocessing passes using keywords (defines) such as `BUFFERS`, `DOUBLE_BUFFERS`, `BACKGROUND` and `POSTPROCESSING`.
+GlslSandbox is a class that allows quick prototyping of pipelines directly from a single shader by branching it into different special stages using `#if`, `#elif`, `#else`, define flags. It also allows you to handle multiple buffers and post-processing passes using keywords (defines) such as `BUFFERS`, `DOUBLE_BUFFERS`, `BACKGROUND` and `POSTPROCESSING`.
 
-GlslSandbox also handle some basic uniforms such as `u_resolution`, `u_mouse`, `u_time`, `u_delta` and `u_frame`.
+GlslSandbox also handles some basic uniforms such as `u_resolution`, `u_mouse`, `u_time`, `u_delta` and `u_frame`.
 
-All this specs are based 100% in [glslViewer](https://github.com/patriciogonzalezvivo/glslViewer/wiki) workflow, and is designed so you can start your prototypes there and then port them to WebGL using [ThreeJS](https://github.com/mrdoob/three.js) in few seconds by just loading your shader code in GlslSandbox. 
-
+All these specs are based 100% on the [glslViewer](https://github.com/patriciogonzalezvivo/glslViewer/wiki) workflow and are designed so you can start your prototypes there and then port them to WebGL using [ThreeJS](https://github.com/mrdoob/three.js) in a few seconds by just loading your shader code in GlslSandbox.
 
 ## Install, load and run your shader
 
@@ -17,7 +16,7 @@ Through your terminal **install** the package:
 npm install glsl-sandbox --save
 ```
 
-If you are not using geometry you just create a new instance of GlslSandbox load your shader and start rendering it:
+If you are not using geometry, you just create a new instance of GlslSandbox, load your shader, and start rendering it:
 
 ```js
 import { WebGLRenderer, PerspectiveCamera, Vector3 } from 'three';
@@ -48,7 +47,7 @@ resize();
 draw();
 ```
 
-If you want to use geometry you will need to create a scene and a camera, provide a vertex and fragment shader and then render the scene using `renderScene` method;
+If you want to use geometry you will need to create a scene and a camera, provide a vertex and fragment shader and then render the scene using `renderScene` method:
 
 
 ```js
@@ -91,11 +90,11 @@ Before getting into the different stages is important to understand that we are 
 
 ![](https://github.com/patriciogonzalezvivo/glslViewer/raw/main/.github/images/buffers.gif)
 
-GlslSandbox will detect the use of the following keywords to define the different stages of the pipeline: `BUFFER_<N>`, `DOUBLE_BUFFER_<N>`, `BACKGROUND` and `POSTPROCESSING`, and will create new render passes for each one of them (except `BACKGROUND` which just render a billboard on your scene). Each one will use the same shader code but "injecting" this keywords at the top of it, so it's behaviour will "activate" different parts of the code. That's what we call forking the shader. 
+GlslSandbox will detect the use of the following keywords to define the different stages of the pipeline: `BUFFER_<N>`, `DOUBLE_BUFFER_<N>`, `BACKGROUND`, and `POSTPROCESSING`. It will create new render passes for each one of them (except `BACKGROUND`, which just renders a billboard in your scene). Each one will use the same shader code but "injecting" these keywords at the top of it, so its behavior will "activate" different parts of the code. That's what we call forking the shader.
 
 In the particular case of `BUFFERS` and `DOUBLE_BUFFERS` it will also create a new render target for each one of them. All `BUFFER_X` will be rendered first into textures with the name `u_bufferX` (where `X` is the index number) and then all `DOUBLE_BUFFER_X` will be rendered into the `u_doubleBufferX` textures.
 
-In 3D scenes, when `POSTPROCESSING` is used, the geometry wiil be render into a framebuffer associated to the `u_scene` texture so you can then in the postprocessing pass that happens at the end of the pipeline.
+In 3D scenes, when `POSTPROCESSING` is used, the geometry will be rendered into a framebuffer associated with the `u_scene` texture. This allows you to perform postprocessing in a pass that occurs at the end of the pipeline.
 
 
 ### BACKGROUND (3D scene stage)
@@ -186,9 +185,9 @@ void main(void) {
 
 ![](https://user-images.githubusercontent.com/346914/198334848-42a4f4ba-cf5e-4fb5-a017-da18c0b8dc6b.svg)
 
-Buffers are used to render something on an offscreen render pass. They are defined by using the keyword `BUFFER_` follow by the index number. The content of that pass will be available as a texture uniform named `u_buffer` follow by the same index number.
+Buffers are used to render something in an offscreen render pass. They are defined by using the keyword `BUFFER_` followed by the index number. The content of that pass will be available as a texture uniform named `u_buffer` followed by the same index number.
 
-This kind of buffers are useful for example for creating blurs that require two passes (one horizontal and one vertical).
+This kind of buffers is useful, for example, for creating blurs that require two passes (one horizontal and one vertical).
 
 ```glsl
 
@@ -220,9 +219,9 @@ void main (void) {
 
 ![](https://user-images.githubusercontent.com/346914/198334801-76edcf24-519b-4b50-8bdf-4e3f01d42ccd.svg)
 
-Double buffers are used to render something on an offscreen render pass, by alternating a single pair of frame buffers. This allows to use the output of one pass as the input of the following. They are defined by using the keyword `DOUBLE_BUFFER_` follow by the index number and the content of that pass will be available as a texture uniform named `u_doubleBuffer` follow by the same index number.
+Double buffers are used to render something in an offscreen render pass by alternating a single pair of frame buffers. This allows using the output of one pass as the input for the following pass. They are defined by using the keyword `DOUBLE_BUFFER_` followed by the index number, and the content of that pass will be available as a texture uniform named `u_doubleBuffer` followed by the same index number.
 
-This particular technique allows you to preserve the content of the previous frame and use it as an input for the next one. This particular technique is useful for example for creating all sort of interesting techniques like motion blur, trails, simulations, etc.
+This particular technique allows you to preserve the content of the previous frame and use it as input for the next one. This technique is useful, for example, for creating all sorts of interesting effects like motion blur, trails, simulations, etc.
 
 ```glsl
 uniform sampler2D   u_doubleBuffer0;
