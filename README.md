@@ -65,7 +65,7 @@ glsl_sandbox.load(shader_frag, shader_vert);
 
 // Create your scene and use the main material shader
 const camera = new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 100);
-const mesh = new Mesh(new BoxGeometry(1, 1, 1), glsl_sandbox.main);
+const mesh = new Mesh(new BoxGeometry(1, 1, 1), glsl_sandbox.material);
 const scene = new Scene();
 scene.add(mesh);
 
@@ -285,6 +285,7 @@ Then locally, open the following links with your browser:
 * http://localhost:5173/examples/2d_ripples.html
 * http://localhost:5173/examples/2d_reaction_diffusion.html
 * http://localhost:5173/examples/3d_scene_pingpong.html
+* http://localhost:5173/examples/3d_scene_postprocessing.html
 
 
 ## License

@@ -108,7 +108,7 @@
       const glsl_sandbox = new GlslSandbox(renderer);
       glsl_sandbox.load(shader_frag, shader_vert);
 
-      const mesh = new Mesh(new BoxGeometry(1, 1, 1), glsl_sandbox.main);
+      const mesh = new Mesh(new BoxGeometry(1, 1, 1), glsl_sandbox.material);
       const scene = new Scene();
       const cam = new PerspectiveCamera(45, width / height, 0.001, 200);
       cam.position.z = 3;
