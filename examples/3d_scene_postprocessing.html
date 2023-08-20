@@ -7,9 +7,8 @@
     </head>
     <body style="margin: 0">
         <script type="module">
-            import { WebGLRenderer, PerspectiveCamera, CameraHelper, PCFShadowMap, Scene, DirectionalLight, BoxGeometry, SphereGeometry, Color, Mesh, ShaderMaterial, PlaneGeometry, Vector2, Vector3 } from 'three';
+            import { WebGLRenderer, PerspectiveCamera, Scene, DirectionalLight, BoxGeometry, SphereGeometry, CylinderGeometry, ConeGeometry, Color, Mesh, ShaderMaterial, PlaneGeometry, Vector2, Vector3 } from 'three';
             import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-            import { ShadowMapViewer } from 'three/addons/utils/ShadowMapViewer.js';
 
             import { resolveLygia } from 'resolve-lygia';
 
@@ -21,12 +20,6 @@
             let width = W.innerWidth;
             let height = W.innerHeight;
             let pixelRatio = W.devicePixelRatio;
-
-            const renderer = new WebGLRenderer();
-            renderer.setPixelRatio(pixelRatio);
-            renderer.setSize(width, height);
-            renderer.shadowMap.enabled = true;
-            D.body.appendChild(renderer.domElement);
 
             const shader_vert = resolveLygia(/* glsl */`
             uniform float   u_time;
@@ -86,8 +79,6 @@
             #define CAMERA_POSITION         u_camera
             #define SURFACE_POSITION        v_position
 
-            #define LIGHT_SHADOWMAP         u_lightShadowMap
-            #define LIGHT_SHADOWMAP_SIZE    1024.0
             #define LIGHT_DIRECTION         u_light
             #define LIGHT_COORD             v_lightCoord
             #define LIGHT_COLOR             u_lightColor
@@ -98,15 +89,26 @@
             #define MODEL_VERTEX_TEXCOORD   v_texcoord
             #define MODEL_VERTEX_COLOR      v_color
 
+            #include "lygia/math/unpack.glsl"
             #include "lygia/math/saturate.glsl"
             #include "lygia/space/ratio.glsl"
+            #include "lygia/space/scale.glsl"
+            #include "lygia/sample/clamp2edge.glsl"
             #include "lygia/color/space/linear2gamma.glsl"
-
+            #define SAMPLERSHADOW_FNC(TEX, UV) unpack(SAMPLER_FNC(TEX, UV))
+            
             #ifndef POSTPROCESSING
             #include "lygia/lighting/pbr.glsl"
             #include "lygia/lighting/material/new.glsl"
             #endif
+            
+            #define CHROMAAB_PCT 10.5
+            #define CHROMAAB_SAMPLER_FNC(TEX, UV) sampleClamp2edge(TEX, UV)
+            #include "lygia/distort/chromaAB.glsl"
 
+            #define BARREL_SAMPLER_FNC(TEX, UV) chromaAB(TEX, UV);
+            #include "lygia/distort/barrel.glsl"
+            
             float checkBoard(vec2 uv, vec2 _scale) {
                 uv = floor(fract(uv * _scale) * 2.0);
                 return min(1.0, uv.x + uv.y) - (uv.x * uv.y);
@@ -122,12 +124,8 @@
             #if defined(POSTPROCESSING)
                 
                 // Render the scene with a circular RGB shift
-                float dist = distance(sst, vec2(0.5)) * 5.0;
-                color.r = texture2D(u_scene, st + pixel * dist).r;
-                color.g = texture2D(u_scene, st).g;
-                color.b = texture2D(u_scene, st - pixel * dist).b;
-
-                // color.rgb = texture2D(u_lightShadowMap, st).rgb;
+                float dist = distance(sst, vec2(0.5));
+                color.rgb = barrel(u_scene, st, dist * 0.1);
 
             #else
 
@@ -147,6 +145,11 @@
             }
             `);
 
+            const renderer = new WebGLRenderer();
+            renderer.setPixelRatio(pixelRatio);
+            renderer.setSize(width, height);
+            renderer.shadowMap.enabled = true;
+            D.body.appendChild(renderer.domElement);
             
             const camera = new PerspectiveCamera(45, width / height, 0.001, 200);
             camera.position.set(5, 5, -5);
@@ -157,50 +160,21 @@
             
             const scene = new Scene();
 
-            const light = new DirectionalLight(0xffffff, 1);
+            const light = new DirectionalLight(0xffffff, 1.0);
             light.position.set(0, 10, 8);
             light.lookAt(0, 0, 0);
-            light.castShadow = true;
-            
+            light.castShadow = true;            
             light.shadow.mapSize.width = 1024;
             light.shadow.mapSize.height = 1024;
-            light.shadow.camera.far = 250;
-            light.shadow.camera.near = 80;
-            light.shadow.camera.left = -3;
-            light.shadow.camera.right = 3;
-            light.shadow.camera.top = 3;
-            light.shadow.camera.bottom = -3;
-            light.shadow.bias = -0.004;
-            
             light.shadow.camera.near = 0.1;
             light.shadow.camera.far = 20;
+
             scene.add(light);
-            // scene.add(light.target)
-            
-            scene.add( new CameraHelper( light.shadow.camera ) );
-
-            // const lightShadowMapViewer = new ShadowMapViewer( light );
-            // lightShadowMapViewer.position.x = 10;
-            // lightShadowMapViewer.position.y = height - ( 256 ) - 10;
-            // lightShadowMapViewer.size.width = 256;
-            // lightShadowMapViewer.size.height = 256;
-            // lightShadowMapViewer.update();
-
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = PCFShadowMap;
-
 
             // GLSL Buffers
-            const uniforms = {
-                u_lightMatrix: { value: light.target.matrix },
-                u_light: { value: light.position },
-                u_lightColor: { value: light.color },
-                u_lightIntensity: { value: light.intensity },
-                u_lightShadowMap: { value: null },
-            };
-
-            const glsl_sandbox = new GlslSandbox(renderer, uniforms);
+            const glsl_sandbox = new GlslSandbox(renderer);
             glsl_sandbox.load(shader_frag, shader_vert);
+            glsl_sandbox.setLight(light);
             
             const floor = new PlaneGeometry(5, 5);
             floor.rotateX(-Math.PI * 0.5);
@@ -210,14 +184,28 @@
             scene.add(floorMesh);
 
             const sphere = new SphereGeometry(0.5);
-            sphere.translate(0.75, 0.5, 0);
+            sphere.translate(0.75, 0.5, 0.75);
             const sphereMesh = new Mesh(sphere, glsl_sandbox.branchMaterial("SPHERE"));
             sphereMesh.castShadow = true;
             sphereMesh.receiveShadow = true;
             scene.add(sphereMesh);
 
-            const box = new BoxGeometry(1.0, 2.0, 1.0);
-            box.translate(-0.75, 1.01, 0);
+            const cylinder = new CylinderGeometry( 0.5, 0.5, 1.0, 32 );
+            cylinder.translate(-0.75, 0.5, 0.75);
+            const cylinderMesh = new Mesh(cylinder, glsl_sandbox.branchMaterial("CYLINDER"));
+            cylinderMesh.castShadow = true;
+            cylinderMesh.receiveShadow = true;
+            scene.add(cylinderMesh);
+
+            const cone = new ConeGeometry( 0.5, 1.0, 32 )
+            cone.translate(0.75, 0.5, -0.75);
+            const coneMesh = new Mesh(cone, glsl_sandbox.branchMaterial("CONE"));
+            coneMesh.castShadow = true;
+            coneMesh.receiveShadow = true;
+            scene.add(coneMesh);
+
+            const box = new BoxGeometry(1.0, 1.0, 1.0);
+            box.translate(-0.75, 0.5, -0.75);
             const boxMesh = new Mesh(box, glsl_sandbox.branchMaterial("BOX"));
             boxMesh.castShadow = true;
             boxMesh.receiveShadow = true;
@@ -225,7 +213,6 @@
 
             const draw = () => {
                 glsl_sandbox.renderScene(scene, camera);
-                uniforms.u_lightShadowMap.value = light.shadow.texture;
                 requestAnimationFrame(draw);
             };
 
@@ -241,8 +228,6 @@
 
                 camera.aspect = width / height;
                 camera.updateProjectionMatrix();
-
-                // lightShadowMapViewer.render( renderer );
             };
 
             W.addEventListener("resize", resize);

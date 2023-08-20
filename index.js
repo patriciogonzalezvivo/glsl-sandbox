@@ -39,6 +39,8 @@ class GlslSandbox {
         this.uniforms.u_time = { value: 0.0 };
         this.uniforms.u_frame = { value: 0 };
 
+        this.light = null;
+
         this.buffers = [];
         this.doubleBuffers = [];
         this.background = null;
@@ -50,7 +52,7 @@ class GlslSandbox {
         this.billboard_camera = new Camera();
         this.billboard_camera.position.z = 1;
         this.passThruUniforms = { texture: { value: null } };
-        this.passThruShader = createShaderMaterial(this.passThruUniforms, getPassThroughFragmentShader());
+        this.passThruShader = createShaderMaterial(this.passThruUniforms, {}, getPassThroughFragmentShader());
 
         this.mesh = new Mesh(new PlaneGeometry(2, 2), this.passThruShader);
         this.billboard_scene.add(this.mesh);
@@ -118,7 +120,7 @@ class GlslSandbox {
             }
         }
 
-        this.material = createShaderMaterial(this.uniforms, this.frag_src, this.vert_src);
+        this.material = createShaderMaterial(this.uniforms, this.defines, this.frag_src, this.vert_src);
 
         const found_postprocessing = this.frag_src.match(/(?:^\s*)((?:#if|#elif)(?:\s*)(defined\s*\(\s*POSTPROCESSING)(?:\s*\))|(?:#ifdef)(?:\s*POSTPROCESSING)(?:\s*))/gm);
         if (found_postprocessing)
@@ -126,20 +128,17 @@ class GlslSandbox {
     }
 
     branchMaterial(name) {
-        return createShaderMaterial(this.uniforms, `#define ${name.toUpperCase()}\n${this.frag_src}`, this.vert_src);
+        return createShaderMaterial(this.uniforms, this.defines, `#define ${name.toUpperCase()}\n${this.frag_src}`, this.vert_src);
     }
 
     addBackground() {
-        this.background = createShaderMaterial(this.uniforms, `#define BACKGROUND\n${this.frag_src}`);
-        this.background.defines = this.defines;
-
+        this.background = createShaderMaterial(this.uniforms, this.defines, `#define BACKGROUND\n${this.frag_src}`);
         return this.background;
     }
 
     addBuffer(width, height) {
         let index = this.buffers.length;
-        let material = createShaderMaterial(this.uniforms, `#define BUFFER_${index}\n${this.frag_src}`);
-        material.defines = this.defines;
+        let material = createShaderMaterial(this.uniforms, this.defines, `#define BUFFER_${index}\n${this.frag_src}`);
         let b = {
             name: `u_buffer${index}`,
             material: material,
@@ -162,8 +161,7 @@ class GlslSandbox {
 
     addDoubleBuffer(width, height) {
         let index = this.doubleBuffers.length;
-        let material = createShaderMaterial(this.uniforms, `#define DOUBLE_BUFFER_${index}\n${this.frag_src}`);
-        material.defines = this.defines;
+        let material = createShaderMaterial(this.uniforms, this.defines, `#define DOUBLE_BUFFER_${index}\n${this.frag_src}`);
         let db = {
             name: `u_doubleBuffer${index}`,
             material: material,
@@ -186,16 +184,14 @@ class GlslSandbox {
     }
 
     addPostprocessing() {
-        this.postprocessing = createShaderMaterial(this.uniforms, `#define POSTPROCESSING\n${this.frag_src}`);
-        this.postprocessing.defines = this.defines;
-
+        this.postprocessing = createShaderMaterial(this.uniforms, this.defines, `#define POSTPROCESSING\n${this.frag_src}`);
         this.sceneBuffer = {
             renderTarget: null,
             width: this.renderer.domElement.width,
             height: this.renderer.domElement.height,
         };
 
-        this.uniforms["u_scene"] = { value: null };
+        this.uniforms.u_scene = { value: null };
 
         this.sceneBuffer.renderTarget = this.createRenderTarget({
             width: this.sceneBuffer.width,
@@ -207,6 +203,17 @@ class GlslSandbox {
         });
 
         return this.sceneBuffer;
+    }
+
+    setLight(light) {
+        this.light = light;
+        this.uniforms.u_lightMatrix = { value: this.light.shadow.matrix };
+        this.uniforms.u_light = { value: this.light.position };
+        this.uniforms.u_lightColor = { value: this.light.color };
+        this.uniforms.u_lightIntensity = { value: this.light.intensity };
+        this.uniforms.u_lightShadowMap = { value: null};
+        this.defines["LIGHT_SHADOWMAP"] = "u_lightShadowMap";
+        this.defines["LIGHT_SHADOWMAP_SIZE"] = this.light.shadow.mapSize.width.toString();
     }
 
     createRenderTarget(b) {
@@ -255,6 +262,15 @@ class GlslSandbox {
             this.uniforms.u_camera.value = camera.position;
             this.uniforms.u_cameraNearClip.value = camera.near;
             this.uniforms.u_cameraFarClip.value = camera.far;
+        }
+
+        if (this.light) {
+            this.uniforms.u_lightMatrix = { value: this.light.shadow.matrix };
+            this.uniforms.u_light = { value: this.light.position };
+            this.uniforms.u_lightColor = { value: this.light.color };
+            this.uniforms.u_lightIntensity = { value: this.light.intensity };
+            if (this.light.shadow.map)
+                this.uniforms.u_lightShadowMap = { value: this.light.shadow.map.texture };
         }
 
         this.lastTime = this.time;
@@ -414,12 +430,13 @@ class GlslSandbox {
     }
 }
 
-function createShaderMaterial(uniforms, fragmentShader, vertexShader) {
+function createShaderMaterial(uniforms, defines, fragmentShader, vertexShader) {
     let material = new ShaderMaterial({
         uniforms: uniforms === undefined ? {} : uniforms,
         vertexShader: vertexShader || getPassThroughVertexShader(),
         fragmentShader,
     });
+    material.defines = defines;
 
     return material;
 }
