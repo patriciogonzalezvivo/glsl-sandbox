@@ -1,6 +1,6 @@
 {
   "name": "glsl-sandbox",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "automates GlslViewer multiple buffers pipeline",
   "main": "index.js",
   "license": "MIT",
