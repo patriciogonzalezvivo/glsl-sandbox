@@ -294,8 +294,6 @@ void main() {
 
 * `uniform sampler2D u_buffer[number]`: extra buffers forked with the define flag `BUFFER_[number]` on a subshaders. [learn more about this here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
 
-![](https://github.com/patriciogonzalezvivo/glslViewer/blob/main/.github/images/buffers.gif)
-
 * `uniform sampler2D u_doubleBuffer[number]`: extra double buffers forked with the define flag `DOUBLE_BUFFER_[number]` on a subshaders. [learn more about this here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
 
 * `uniform sampler2D u_scene`: color texture buffer of the scene, available on `POSTPROCESSING` subshader. [Learn more about it here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
