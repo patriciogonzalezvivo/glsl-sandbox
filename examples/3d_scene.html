@@ -22,6 +22,8 @@
             let pixelRatio = W.devicePixelRatio;
 
             const shader_vert = resolveLygia(/* glsl */`
+
+            
             uniform float   u_time;
 
             uniform mat4    u_lightMatrix;
@@ -142,10 +144,14 @@
             light.position.set(0, 10, 8);
             light.lookAt(0, 0, 0);
             light.castShadow = true;            
-            light.shadow.mapSize.width = 1024;
-            light.shadow.mapSize.height = 1024;
+            light.shadow.mapSize.width = 2048;
+            light.shadow.mapSize.height = 2048;
             light.shadow.camera.near = 0.1;
             light.shadow.camera.far = 20;
+            light.shadow.camera.left = -3;
+            light.shadow.camera.right = 3;
+            light.shadow.camera.top = 3;
+            light.shadow.camera.bottom = -3;
 
             scene.add(light);
 
@@ -161,29 +167,22 @@
             floorMesh.receiveShadow = true;
             scene.add(floorMesh);
 
-            const sphere = new SphereGeometry(0.5);
-            sphere.translate(0.75, 0.5, 0.75);
+            const sphere = new SphereGeometry(0.5, 64, 32);
+            sphere.translate(0.0, 0.5, 0.0);
             const sphereMesh = new Mesh(sphere, glsl_sandbox.branchMaterial("SPHERE"));
             sphereMesh.castShadow = true;
             sphereMesh.receiveShadow = true;
             scene.add(sphereMesh);
 
-            const cylinder = new CylinderGeometry( 0.5, 0.5, 1.0, 32 );
-            cylinder.translate(-0.75, 0.5, 0.75);
-            const cylinderMesh = new Mesh(cylinder, glsl_sandbox.branchMaterial("CYLINDER"));
-            cylinderMesh.castShadow = true;
-            cylinderMesh.receiveShadow = true;
-            scene.add(cylinderMesh);
-
             const cone = new ConeGeometry( 0.5, 1.0, 32 )
-            cone.translate(0.75, 0.5, -0.75);
+            cone.translate(1, 0.5, 1);
             const coneMesh = new Mesh(cone, glsl_sandbox.branchMaterial("CONE"));
             coneMesh.castShadow = true;
             coneMesh.receiveShadow = true;
             scene.add(coneMesh);
 
             const box = new BoxGeometry(1.0, 1.0, 1.0);
-            box.translate(-0.75, 0.5, -0.75);
+            box.translate(-1, 0.5, -1);
             const boxMesh = new Mesh(box, glsl_sandbox.branchMaterial("BOX"));
             boxMesh.castShadow = true;
             boxMesh.receiveShadow = true;

@@ -6,6 +6,7 @@ import {
     ShaderMaterial,
     Mesh,
     Clock,
+    Vector4,
     Vector3,
     Vector2,
     LinearFilter,
@@ -33,12 +34,21 @@ class GlslSandbox {
         this.uniforms.u_camera = { value: new Vector3() };
         this.uniforms.u_cameraNearClip = { value: 0.0 };
         this.uniforms.u_cameraFarClip = { value: 0.0 };
+        this.uniforms.u_cameraDistance = { value: 0.0 };
+
+        this.uniforms.u_viewMatrix = { value: null };
+        this.uniforms.u_inverseViewMatrix = { value: null };
+        this.uniforms.u_projectionMatrix = { value: null };
+        this.uniforms.u_inverseProjectionMatrix = { value: null };
+        this.uniforms.u_normalMatrix = { value: null };
+        this.uniforms.u_modelMatrix = { value: null };
 
         this.uniforms.u_resolution = { value: new Vector2() };
         this.uniforms.u_mouse = { value: new Vector2() };
         this.uniforms.u_delta = { value: 0.0 };
         this.uniforms.u_time = { value: 0.0 };
         this.uniforms.u_frame = { value: 0 };
+        this.uniforms.u_date = { value: new Vector4() };
 
         this.light = null;
 
@@ -261,15 +271,29 @@ class GlslSandbox {
 
         this.time = this.clock.getElapsedTime();
 
+        this.uniforms.u_frame.value = this.frame;
         this.uniforms.u_time.value = this.time;
         this.uniforms.u_delta.value = this.time - this.lastTime;
-        this.uniforms.u_frame.value = this.frame;
+
         this.uniforms.u_resolution.value = this.resolution;
+
+        let date = new Date();
+        this.uniforms.u_date.value = new Vector4(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds() + date.getMilliseconds() * 0.001 );
 
         if (camera) {
             this.uniforms.u_camera.value = camera.position;
+            this.uniforms.u_cameraDistance.value = camera.position.length();
             this.uniforms.u_cameraNearClip.value = camera.near;
             this.uniforms.u_cameraFarClip.value = camera.far;
+
+            this.uniforms.u_projectionMatrix.value = camera.projectionMatrix;
+            this.uniforms.u_inverseProjectionMatrix.value = camera.projectionMatrixInverse;
+
+            this.uniforms.u_viewMatrix.value = camera.matrixWorldInverse;
+            this.uniforms.u_inverseViewMatrix.value = camera.matrixWorld;
+            this.uniforms.u_normalMatrix.value = camera.normalMatrix;
+
+            this.uniforms.u_modelMatrix.value = camera.matrixWorld;
         }
 
         if (this.light) {

@@ -254,6 +254,56 @@ void main() {
 }
 ```
 
+## Native Uniforms
+
+* `uniform int   u_frame;`: frame number
+
+* `uniform float u_time;`: shader playback time (in seconds)
+
+* `uniform float u_delta;`: delta time between frames (in seconds)
+
+* `uniform vec4  u_date;`: year, month, day and seconds
+
+* `uniform vec2  u_resolution;`: viewport resolution (in pixels)
+
+* `uniform vec2  u_mouse;`: mouse pixel coords
+
+* `uniform vec3  u_camera`: Position of the camera
+
+* `uniform float u_cameraFarClip`: far clipping
+
+* `uniform float u_cameraNearClip`: near clipping
+
+* `uniform float u_cameraDistance`: camera distance to target (0,0,0)
+
+* `uniform mat3  u_normalMatrix`: Normal Matrix
+
+* `uniform mat4  u_modelMatrix`: Model Matrix
+
+* `uniform mat4  u_viewMatrix`: View Matrix
+
+* `uniform mat4  u_projectionMatrix`: Projection Matrix
+
+* `uniform vec3  u_light`: Position of the light
+
+* `uniform vec3  u_lightColor`: Color of the light
+
+* `uniform float u_lightIntensity`: Intensity of the light
+
+* `uniform mat4  u_lightMatrix`: Light Matrix for reprojecting shadows
+
+* `uniform sampler2D u_buffer[number]`: extra buffers forked with the define flag `BUFFER_[number]` on a subshaders. [learn more about this here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
+
+![](https://github.com/patriciogonzalezvivo/glslViewer/blob/main/.github/images/buffers.gif)
+
+* `uniform sampler2D u_doubleBuffer[number]`: extra double buffers forked with the define flag `DOUBLE_BUFFER_[number]` on a subshaders. [learn more about this here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
+
+* `uniform sampler2D u_scene`: color texture buffer of the scene, available on `POSTPROCESSING` subshader. [Learn more about it here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
+
+* `uniform sampler2D u_sceneDepth`: color texture buffer of the scene, available on `POSTPROCESSING` subshader. [Learn more about it here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
+
+* `uniform sampler2D u_ligthShadowMap`: Shadow map
+
 ## Examples
 
 To build/run from source, first `git clone` this repo 
@@ -286,8 +336,8 @@ Then locally, open the following links with your browser:
 * http://localhost:5173/examples/2d_reaction_diffusion.html
 * http://localhost:5173/examples/3d_scene_pingpong.html
 * http://localhost:5173/examples/3d_scene.html
-* http://localhost:5173/examples/3d_scene_postprocessing.html
 * http://localhost:5173/examples/3d_scene_background.html
+* http://localhost:5173/examples/3d_scene_postprocessing.html
 
 
 ## License
