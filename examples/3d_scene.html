@@ -56,11 +56,8 @@
 
             const shader_frag = resolveLygia(/* glsl */`
             uniform sampler2D   u_scene;
-            uniform sampler2D   u_sceneDepth;
         
             uniform vec3        u_camera;
-            uniform float       u_cameraNearClip;
-            uniform float       u_cameraFarClip;
             
             uniform sampler2D   u_lightShadowMap;
             uniform mat4        u_lightMatrix;
@@ -81,7 +78,6 @@
 
             #define CAMERA_POSITION         u_camera
             #define SURFACE_POSITION        v_position
-            #define RESOLUTION              u_resolution
 
             #define LIGHT_DIRECTION         u_light
             #define LIGHT_COORD             v_lightCoord
@@ -94,45 +90,26 @@
             #define MODEL_VERTEX_COLOR      v_color
 
             #include "lygia/math/unpack.glsl"
-            #include "lygia/space/ratio.glsl"
-            #include "lygia/sample/clamp2edge.glsl"
             #define SAMPLERSHADOW_FNC(TEX, UV) unpack(SAMPLER_FNC(TEX, UV))
-            
             #define SHADOWMAP_BIAS 0.0
 
-            #ifndef POSTPROCESSING
             #include "lygia/lighting/pbr.glsl"
             #include "lygia/lighting/material/new.glsl"
-            #endif
 
-            
-            #include "lygia/sample/fxaa.glsl"
-            // #define SAMPLEDOF_DEBUG
-            // #define SAMPLEDOF_BLUR_SIZE 12.
-            #define SAMPLEDOF_COLOR_SAMPLE_FNC(TEX, UV) sampleFXAA(TEX, UV, 1.0/RESOLUTION).rgb
-            #define SAMPLEDOF_DEPTH_SAMPLE_FNC(TEX, UV) linearizeDepth( sampleClamp2edge(TEX, UV).r, u_cameraNearClip, u_cameraFarClip)
-            #include "lygia/space/linearizeDepth.glsl"
-            #include "lygia/sample/dof.glsl"
+            // #define AA_EDGE 0.5
+            #include "lygia/math/aafract.glsl"
+            #include "lygia/math/aafloor.glsl"
             
             float checkBoard(vec2 uv, vec2 _scale) {
-                uv = floor(fract(uv * _scale) * 2.0);
-                return min(1.0, uv.x + uv.y) - (uv.x * uv.y);
+                uv = aafloor( aafract(uv * _scale) * 2.0);
+                return saturate(min(1.0, uv.x + uv.y) - (uv.x * uv.y));
             }
 
             void main() {
                 vec4 color = vec4(vec3(0.0), 1.0);
                 vec2 pixel = 1.0 / u_resolution;
                 vec2 st = gl_FragCoord.xy * pixel;
-                vec2 sst = ratio(st, u_resolution); 
                 vec2 uv = v_texcoord;
-
-            #if defined(POSTPROCESSING)
-
-                float dist = length(u_camera);
-                color.rgb = sampleDoF(u_scene, u_sceneDepth, st, dist, 20.0);
-
-
-            #else
 
                 Material material = materialNew();
 
@@ -142,14 +119,11 @@
 
                 color = pbr(material);
 
-            #endif
-
-
                 gl_FragColor = color;
             }
             `);
 
-            const renderer = new WebGLRenderer();
+            const renderer = new WebGLRenderer({antialias: true});
             renderer.setPixelRatio(pixelRatio);
             renderer.setSize(width, height);
             renderer.shadowMap.enabled = true;

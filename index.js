@@ -15,6 +15,7 @@ import {
     HalfFloatType,
     RGBAFormat,
     NearestFilter,
+    DepthTexture,
 } from 'three';
 
 class GlslSandbox {
@@ -192,6 +193,7 @@ class GlslSandbox {
         };
 
         this.uniforms.u_scene = { value: null };
+        this.uniforms.u_sceneDepth = { value: null };
 
         this.sceneBuffer.renderTarget = this.createRenderTarget({
             width: this.sceneBuffer.width,
@@ -199,7 +201,8 @@ class GlslSandbox {
             wrapS: null,
             wrapT: null,
             minFilter: LinearFilter,
-            magFilter: LinearFilter
+            magFilter: LinearFilter,
+            depth: true
         });
 
         return this.sceneBuffer;
@@ -236,6 +239,10 @@ class GlslSandbox {
             h *= this.renderer.domElement.height;
         }
 
+        let depth = null;
+        if (b.depth)
+            depth = new DepthTexture();
+
         let renderTarget = new WebGLRenderTarget(Math.floor(w), Math.floor(h), {
             wrapS: b.wrapS,
             wrapT: b.wrapT,
@@ -243,7 +250,8 @@ class GlslSandbox {
             magFilter: b.magFilter,
             format: RGBAFormat,
             type: (/(iPad|iPhone|iPod)/g.test(navigator.userAgent)) ? HalfFloatType : type,
-            stencilBuffer: false
+            stencilBuffer: false,
+            depthTexture: depth,
         });
 
         return renderTarget;
@@ -382,6 +390,7 @@ class GlslSandbox {
 
             this.uniforms.u_resolution.value = this.resolution;
             this.uniforms.u_scene.value = this.sceneBuffer.renderTarget.texture;
+            this.uniforms.u_sceneDepth.value = this.sceneBuffer.renderTarget.depthTexture;
             this.mesh.material = this.postprocessing;
             this.renderer.render(this.billboard_scene, this.billboard_camera);
             this.mesh.material = this.passThruShader;
