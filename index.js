@@ -139,7 +139,7 @@ class GlslSandbox {
     }
 
     branchMaterial(name) {
-        return createShaderMaterial(this.uniforms, this.defines, `#define ${name.toUpperCase()}\n${this.frag_src}`, this.vert_src);
+        return createShaderMaterial(this.uniforms, this.defines, `#define ${name.toUpperCase()}\n${this.frag_src}`, `#define ${name.toUpperCase()}\n${this.vert_src}`,);
     }
 
     addBackground() {
@@ -301,6 +301,7 @@ class GlslSandbox {
             this.uniforms.u_light = { value: this.light.position };
             this.uniforms.u_lightColor = { value: this.light.color };
             this.uniforms.u_lightIntensity = { value: this.light.intensity };
+
             if (this.light.shadow.map)
                 this.uniforms.u_lightShadowMap = { value: this.light.shadow.map.texture };
         }
@@ -415,6 +416,7 @@ class GlslSandbox {
             this.uniforms.u_resolution.value = this.resolution;
             this.uniforms.u_scene.value = this.sceneBuffer.renderTarget.texture;
             this.uniforms.u_sceneDepth.value = this.sceneBuffer.renderTarget.depthTexture;
+
             this.mesh.material = this.postprocessing;
             this.renderer.render(this.billboard_scene, this.billboard_camera);
             this.mesh.material = this.passThruShader;

@@ -332,6 +332,7 @@ Then locally, open the following links with your browser:
 * http://localhost:5173/examples/2d_trails.html
 * http://localhost:5173/examples/2d_ripples.html
 * http://localhost:5173/examples/2d_reaction_diffusion.html
+* http://localhost:5173/examples/3d_trails.html
 * http://localhost:5173/examples/3d_scene_pingpong.html
 * http://localhost:5173/examples/3d_scene.html
 * http://localhost:5173/examples/3d_scene_background.html
