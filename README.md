@@ -274,7 +274,7 @@ void main() {
 
 * `uniform float u_cameraNearClip`: near clipping
 
-* `uniform float u_cameraDistance`: camera distance to target (0,0,0)
+* `uniform float u_cameraDistance`: camera distance to (0,0,0)
 
 * `uniform mat3  u_normalMatrix`: Normal Matrix
 
@@ -292,15 +292,16 @@ void main() {
 
 * `uniform mat4  u_lightMatrix`: Light Matrix for reprojecting shadows
 
-* `uniform sampler2D u_buffer[number]`: extra buffers forked with the define flag `BUFFER_[number]` on a subshaders. [learn more about this here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
-
-* `uniform sampler2D u_doubleBuffer[number]`: extra double buffers forked with the define flag `DOUBLE_BUFFER_[number]` on a subshaders. [learn more about this here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
-
 * `uniform sampler2D u_scene`: color texture buffer of the scene, available on `POSTPROCESSING` subshader. [Learn more about it here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
 
 * `uniform sampler2D u_sceneDepth`: color texture buffer of the scene, available on `POSTPROCESSING` subshader. [Learn more about it here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
 
 * `uniform sampler2D u_ligthShadowMap`: Shadow map
+
+* `uniform sampler2D u_buffer[number]`: extra buffers forked with the define flag `BUFFER_[number]` on a subshaders. [learn more about this here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
+
+* `uniform sampler2D u_doubleBuffer[number]`: extra double buffers forked with the define flag `DOUBLE_BUFFER_[number]` on a subshaders. [learn more about this here](https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#buffers-and-render-passes)
+
 
 ## Examples
 
@@ -329,6 +330,7 @@ npm run build
 Then locally, open the following links with your browser:
 
 * http://localhost:5173
+* http://localhost:5173/examples/2d_clock.html
 * http://localhost:5173/examples/2d_trails.html
 * http://localhost:5173/examples/2d_reaction_diffusion.html
 * http://localhost:5173/examples/3d_trails.html
