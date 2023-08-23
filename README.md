@@ -282,7 +282,11 @@ void main() {
 
 * `uniform mat4  u_viewMatrix`: View Matrix
 
+* `uniform mat4  u_inverseViewMatrix`: Inverse View Matrix
+
 * `uniform mat4  u_projectionMatrix`: Projection Matrix
+
+* `uniform mat4  u_inverseProjectionMatrix`: Inverse Projection Matrix
 
 * `uniform vec3  u_light`: Position of the light
 
