@@ -1,7 +1,7 @@
 {
   "name": "glsl-sandbox",
-  "version": "1.0.5",
-  "description": "automates GlslViewer multiple buffers pipeline",
+  "version": "1.0.6",
+  "description": "deprecated and replaced by glsl-pipeline",
   "main": "index.js",
   "license": "MIT",
   "author": "Patricio Gonzalez Vivo <patriciogonzalezvivo@gmail.com>",
